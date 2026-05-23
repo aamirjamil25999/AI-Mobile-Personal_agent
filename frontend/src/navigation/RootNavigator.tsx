@@ -19,11 +19,13 @@ export type RootStackParamList = {
   TaskReview: {
     actionId: QuickActionId;
     prompt: string;
+    targetPhoneNumber?: string;
   };
   ExecutionStatus: {
     actionId: QuickActionId;
     prompt: string;
     safetyCount: number;
+    targetPhoneNumber?: string;
   };
 };
 

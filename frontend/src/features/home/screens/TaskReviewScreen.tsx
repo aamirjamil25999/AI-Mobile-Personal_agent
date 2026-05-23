@@ -95,6 +95,11 @@ export const TaskReviewScreen = ({ navigation, route }: TaskReviewScreenProps) =
         <AppText muted style={styles.promptText}>
           {route.params.prompt}
         </AppText>
+        {route.params.targetPhoneNumber ? (
+          <AppText muted style={styles.promptText}>
+            Target number: {route.params.targetPhoneNumber}
+          </AppText>
+        ) : null}
       </View>
 
       <View
@@ -147,7 +152,8 @@ export const TaskReviewScreen = ({ navigation, route }: TaskReviewScreenProps) =
           navigation.navigate('ExecutionStatus', {
             actionId: action.id,
             prompt: route.params.prompt,
-            safetyCount: selectedSafety.length
+            safetyCount: selectedSafety.length,
+            targetPhoneNumber: route.params.targetPhoneNumber
           });
         }}
         disabled={!isPlanReady}

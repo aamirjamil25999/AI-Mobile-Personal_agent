@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, Linking } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
@@ -47,12 +47,35 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
   const theme = useAppTheme();
   const action = getQuickActionById(route.params.actionId);
   const [activeStep, setActiveStep] = useState(1);
+  const [callStatus, setCallStatus] = useState<string | null>(null);
 
   const progressText = useMemo(() => {
     const total = EXECUTION_STEPS.length;
     const done = activeStep + 1;
     return `${done}/${total} steps in progress`;
   }, [activeStep]);
+
+  const handleInitiateCall = async () => {
+    if (!route.params.targetPhoneNumber) {
+      setCallStatus('No phone number found. Go back and enter a valid number.');
+      return;
+    }
+
+    const callUrl = `tel:${route.params.targetPhoneNumber}`;
+
+    try {
+      const supported = await Linking.canOpenURL(callUrl);
+      if (!supported) {
+        setCallStatus('Calling is not supported on this device.');
+        return;
+      }
+
+      await Linking.openURL(callUrl);
+      setCallStatus(`Dialer opened for ${route.params.targetPhoneNumber}`);
+    } catch {
+      setCallStatus('Failed to open dialer. Please try again.');
+    }
+  };
 
   return (
     <ScreenContainer contentStyle={styles.container}>
@@ -117,6 +140,35 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
           })}
         </View>
       </View>
+
+      {action.id === 'call' ? (
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              borderRadius: theme.radius.md
+            }
+          ]}
+        >
+          <AppText style={styles.blockTitle}>Smart Call</AppText>
+          <AppText muted>
+            {route.params.targetPhoneNumber
+              ? `Ready to call ${route.params.targetPhoneNumber}`
+              : 'Phone number missing in this execution context.'}
+          </AppText>
+
+          <Button
+            label="Start Smart Call"
+            onPress={() => {
+              void handleInitiateCall();
+            }}
+          />
+
+          {callStatus ? <AppText muted style={styles.callStatus}>{callStatus}</AppText> : null}
+        </View>
+      ) : null}
 
       <View style={styles.buttonRow}>
         <Button
@@ -198,5 +250,9 @@ const styles = StyleSheet.create({
   },
   halfButton: {
     flex: 1
+  },
+  callStatus: {
+    fontSize: 12,
+    marginTop: 2
   }
 });

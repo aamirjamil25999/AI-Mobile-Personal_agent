@@ -25,6 +25,8 @@ const DEFAULT_PROMPTS: Record<string, string> = {
     'Enable battery saver at 20%, keep Wi-Fi ON, and reduce screen brightness to 35%.'
 };
 
+const normalizePhoneNumber = (value: string) => value.replace(/[^\d]/g, '').slice(0, 15);
+
 export const ActionCenterScreen = ({ navigation, route }: ActionCenterScreenProps) => {
   const theme = useAppTheme();
   const action = getQuickActionById(route.params.actionId);
@@ -32,6 +34,7 @@ export const ActionCenterScreen = ({ navigation, route }: ActionCenterScreenProp
   const [prompt, setPrompt] = useState(
     DEFAULT_PROMPTS[action.id] ?? 'Describe the automation task here.'
   );
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [status, setStatus] = useState<string | null>(null);
 
   const helperText = useMemo(() => {
@@ -90,6 +93,16 @@ export const ActionCenterScreen = ({ navigation, route }: ActionCenterScreenProp
           placeholder="Tell the agent what to do..."
         />
 
+        {action.id === 'call' ? (
+          <Input
+            label="Phone Number"
+            value={phoneNumber}
+            onChangeText={(value) => setPhoneNumber(normalizePhoneNumber(value))}
+            keyboardType="phone-pad"
+            placeholder="Enter number (10-15 digits)"
+          />
+        ) : null}
+
         <AppText muted style={styles.helperText}>
           {helperText}
         </AppText>
@@ -102,9 +115,15 @@ export const ActionCenterScreen = ({ navigation, route }: ActionCenterScreenProp
               return;
             }
 
+            if (action.id === 'call' && !/^[0-9]{10,15}$/.test(phoneNumber)) {
+              setStatus('Please enter a valid phone number for Smart Call.');
+              return;
+            }
+
             navigation.navigate('TaskReview', {
               actionId: action.id,
-              prompt: prompt.trim()
+              prompt: prompt.trim(),
+              targetPhoneNumber: action.id === 'call' ? phoneNumber : undefined
             });
           }}
         />
