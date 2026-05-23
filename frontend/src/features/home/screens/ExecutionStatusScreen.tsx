@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, PermissionsAndroid, Platform, Pressable, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Contacts from 'expo-contacts';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -155,15 +156,36 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
     }
 
     const callUrl = `tel:${dialNumber}`;
+    const dialUrl = `tel:${dialNumber}`;
 
     try {
-      const supported = await Linking.canOpenURL(callUrl);
+      if (Platform.OS === 'android') {
+        const permission = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CALL_PHONE,
+          {
+            title: 'Call permission',
+            message: 'My Phone Agent needs permission to place direct smart calls.',
+            buttonPositive: 'Allow',
+            buttonNegative: 'Not now'
+          }
+        );
+
+        if (permission === PermissionsAndroid.RESULTS.GRANTED) {
+          await IntentLauncher.startActivityAsync('android.intent.action.CALL', {
+            data: callUrl
+          });
+          setCallStatus(`Direct call started for ${dialNumber}`);
+          return;
+        }
+      }
+
+      const supported = await Linking.canOpenURL(dialUrl);
       if (!supported) {
         setCallStatus('Calling is not supported on this device.');
         return;
       }
 
-      await Linking.openURL(callUrl);
+      await Linking.openURL(dialUrl);
       setCallStatus(`Dialer opened for ${dialNumber}`);
     } catch {
       setCallStatus('Failed to open dialer. Please try again.');

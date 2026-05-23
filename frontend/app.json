@@ -16,7 +16,11 @@
       "adaptiveIcon": {
         "backgroundColor": "#050B17"
       },
-      "package": "com.myphoneagent.app"
+      "package": "com.myphoneagent.app",
+      "permissions": [
+        "android.permission.CALL_PHONE",
+        "android.permission.READ_CONTACTS"
+      ]
     },
     "web": {
       "bundler": "metro"
