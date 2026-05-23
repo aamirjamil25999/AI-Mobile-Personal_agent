@@ -6,6 +6,7 @@ import type { QuickActionId } from '@/features/home/types/home';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ActionCenterScreen } from '@/features/home/screens/ActionCenterScreen';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
+import { TaskReviewScreen } from '@/features/home/screens/TaskReviewScreen';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 export type RootStackParamList = {
@@ -13,6 +14,10 @@ export type RootStackParamList = {
   Home: undefined;
   ActionCenter: {
     actionId: QuickActionId;
+  };
+  TaskReview: {
+    actionId: QuickActionId;
+    prompt: string;
   };
 };
 
@@ -41,6 +46,11 @@ export const RootNavigator = () => {
             name="ActionCenter"
             component={ActionCenterScreen}
             options={{ title: 'Action Center' }}
+          />
+          <Stack.Screen
+            name="TaskReview"
+            component={TaskReviewScreen}
+            options={{ title: 'Task Review' }}
           />
         </>
       ) : (

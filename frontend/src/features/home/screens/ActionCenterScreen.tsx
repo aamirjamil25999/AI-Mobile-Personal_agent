@@ -102,7 +102,10 @@ export const ActionCenterScreen = ({ navigation, route }: ActionCenterScreenProp
               return;
             }
 
-            setStatus('Queued successfully. Execution pipeline is ready for backend integration.');
+            navigation.navigate('TaskReview', {
+              actionId: action.id,
+              prompt: prompt.trim()
+            });
           }}
         />
       </View>
