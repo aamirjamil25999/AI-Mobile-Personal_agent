@@ -95,6 +95,11 @@ export const TaskReviewScreen = ({ navigation, route }: TaskReviewScreenProps) =
         <AppText muted style={styles.promptText}>
           {route.params.prompt}
         </AppText>
+        {route.params.targetContactName ? (
+          <AppText muted style={styles.promptText}>
+            Target contact: {route.params.targetContactName}
+          </AppText>
+        ) : null}
         {route.params.targetPhoneNumber ? (
           <AppText muted style={styles.promptText}>
             Target number: {route.params.targetPhoneNumber}
@@ -153,6 +158,7 @@ export const TaskReviewScreen = ({ navigation, route }: TaskReviewScreenProps) =
             actionId: action.id,
             prompt: route.params.prompt,
             safetyCount: selectedSafety.length,
+            targetContactName: route.params.targetContactName,
             targetPhoneNumber: route.params.targetPhoneNumber
           });
         }}

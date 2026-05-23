@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View, Linking } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Contacts from 'expo-contacts';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +19,12 @@ type ExecutionStep = {
   id: string;
   title: string;
   detail: string;
+};
+
+type ContactCandidate = {
+  id: string;
+  name: string;
+  number: string;
 };
 
 const EXECUTION_STEPS: ExecutionStep[] = [
@@ -43,11 +50,43 @@ const EXECUTION_STEPS: ExecutionStep[] = [
   }
 ];
 
+const normalizeDialNumber = (value: string) => value.replace(/[^\d]/g, '').slice(0, 15);
+
+const extractContactCandidates = (contacts: Contacts.Contact[]) => {
+  const candidates: ContactCandidate[] = [];
+
+  contacts.forEach((contact) => {
+    const name = contact.name?.trim() || 'Unnamed contact';
+
+    (contact.phoneNumbers ?? []).forEach((entry, index) => {
+      const normalizedNumber = normalizeDialNumber(entry.number ?? '');
+      if (!/^[0-9]{7,15}$/.test(normalizedNumber)) {
+        return;
+      }
+
+      candidates.push({
+        id: `${name}-${index}`,
+        name,
+        number: normalizedNumber
+      });
+    });
+  });
+
+  return candidates;
+};
+
 export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScreenProps) => {
   const theme = useAppTheme();
   const action = getQuickActionById(route.params.actionId);
+  const targetContactName = route.params.targetContactName?.trim() ?? '';
+
   const [activeStep, setActiveStep] = useState(1);
   const [callStatus, setCallStatus] = useState<string | null>(null);
+  const [isFetchingContacts, setIsFetchingContacts] = useState(false);
+  const [contactMatches, setContactMatches] = useState<ContactCandidate[]>([]);
+  const [selectedNumber, setSelectedNumber] = useState<string | null>(
+    route.params.targetPhoneNumber ?? null
+  );
 
   const progressText = useMemo(() => {
     const total = EXECUTION_STEPS.length;
@@ -55,13 +94,67 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
     return `${done}/${total} steps in progress`;
   }, [activeStep]);
 
-  const handleInitiateCall = async () => {
-    if (!route.params.targetPhoneNumber) {
-      setCallStatus('No phone number found. Go back and enter a valid number.');
+  const dialNumber = selectedNumber ?? route.params.targetPhoneNumber ?? null;
+
+  const findContactMatches = async () => {
+    if (action.id !== 'call' || !targetContactName) {
       return;
     }
 
-    const callUrl = `tel:${route.params.targetPhoneNumber}`;
+    setIsFetchingContacts(true);
+    setCallStatus(null);
+
+    try {
+      const permission = await Contacts.requestPermissionsAsync();
+
+      if (permission.status !== 'granted') {
+        setCallStatus('Contacts permission denied. Please allow contacts access.');
+        setIsFetchingContacts(false);
+        return;
+      }
+
+      const contactResult = await Contacts.getContactsAsync({
+        name: targetContactName,
+        fields: [Contacts.Fields.PhoneNumbers],
+        pageSize: 200
+      });
+
+      const allCandidates = extractContactCandidates(contactResult.data);
+      const query = targetContactName.toLowerCase();
+      const exactMatches = allCandidates.filter((item) =>
+        item.name.toLowerCase().includes(query)
+      );
+
+      const finalMatches = (exactMatches.length > 0 ? exactMatches : allCandidates).slice(0, 10);
+      setContactMatches(finalMatches);
+
+      if (!selectedNumber && finalMatches.length === 1) {
+        setSelectedNumber(finalMatches[0].number);
+      }
+
+      if (!route.params.targetPhoneNumber && finalMatches.length === 0) {
+        setCallStatus('No phonebook match found. Add number manually in Smart Call form.');
+      }
+    } catch {
+      setCallStatus('Failed to read contacts. Please try again.');
+    } finally {
+      setIsFetchingContacts(false);
+    }
+  };
+
+  useEffect(() => {
+    void findContactMatches();
+    // We only want initial lookup for this screen load context.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleInitiateCall = async () => {
+    if (!dialNumber) {
+      setCallStatus('No phone number found. Go back and add contact or number.');
+      return;
+    }
+
+    const callUrl = `tel:${dialNumber}`;
 
     try {
       const supported = await Linking.canOpenURL(callUrl);
@@ -71,7 +164,7 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
       }
 
       await Linking.openURL(callUrl);
-      setCallStatus(`Dialer opened for ${route.params.targetPhoneNumber}`);
+      setCallStatus(`Dialer opened for ${dialNumber}`);
     } catch {
       setCallStatus('Failed to open dialer. Please try again.');
     }
@@ -153,18 +246,67 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
           ]}
         >
           <AppText style={styles.blockTitle}>Smart Call</AppText>
-          <AppText muted>
-            {route.params.targetPhoneNumber
-              ? `Ready to call ${route.params.targetPhoneNumber}`
-              : 'Phone number missing in this execution context.'}
-          </AppText>
 
-          <Button
-            label="Start Smart Call"
-            onPress={() => {
-              void handleInitiateCall();
-            }}
-          />
+          {targetContactName ? (
+            <AppText muted>Searching phonebook for: {targetContactName}</AppText>
+          ) : null}
+
+          {dialNumber ? <AppText muted>Selected number: {dialNumber}</AppText> : null}
+
+          {isFetchingContacts ? <AppText muted>Loading phonebook contacts...</AppText> : null}
+
+          {contactMatches.length > 0 ? (
+            <View style={styles.contactList}>
+              {contactMatches.map((candidate) => {
+                const isSelected = dialNumber === candidate.number;
+
+                return (
+                  <Pressable
+                    key={candidate.id}
+                    onPress={() => setSelectedNumber(candidate.number)}
+                    style={[
+                      styles.contactRow,
+                      {
+                        borderColor: isSelected ? theme.colors.primary : theme.colors.border,
+                        backgroundColor: isSelected
+                          ? theme.colors.surfaceAlt
+                          : theme.colors.surface
+                      }
+                    ]}
+                  >
+                    <View style={styles.contactMeta}>
+                      <AppText style={styles.contactName}>{candidate.name}</AppText>
+                      <AppText muted style={styles.contactNumber}>
+                        {candidate.number}
+                      </AppText>
+                    </View>
+                    <AppText>{isSelected ? 'Selected' : 'Choose'}</AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+
+          <View style={styles.callActionRow}>
+            <Button
+              label="Refresh Contacts"
+              variant="secondary"
+              fullWidth={false}
+              style={styles.halfButton}
+              onPress={() => {
+                void findContactMatches();
+              }}
+            />
+            <Button
+              label="Start Smart Call"
+              fullWidth={false}
+              style={styles.halfButton}
+              onPress={() => {
+                void handleInitiateCall();
+              }}
+              disabled={!dialNumber}
+            />
+          </View>
 
           {callStatus ? <AppText muted style={styles.callStatus}>{callStatus}</AppText> : null}
         </View>
@@ -243,6 +385,34 @@ const styles = StyleSheet.create({
   stepDetail: {
     fontSize: 12,
     lineHeight: 16
+  },
+  contactList: {
+    gap: 8,
+    marginTop: 2
+  },
+  contactRow: {
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8
+  },
+  contactMeta: {
+    flex: 1,
+    gap: 1
+  },
+  contactName: {
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  contactNumber: {
+    fontSize: 12
+  },
+  callActionRow: {
+    flexDirection: 'row',
+    gap: 10
   },
   buttonRow: {
     flexDirection: 'row',

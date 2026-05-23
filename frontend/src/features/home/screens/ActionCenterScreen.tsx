@@ -34,6 +34,7 @@ export const ActionCenterScreen = ({ navigation, route }: ActionCenterScreenProp
   const [prompt, setPrompt] = useState(
     DEFAULT_PROMPTS[action.id] ?? 'Describe the automation task here.'
   );
+  const [contactName, setContactName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [status, setStatus] = useState<string | null>(null);
 
@@ -94,13 +95,22 @@ export const ActionCenterScreen = ({ navigation, route }: ActionCenterScreenProp
         />
 
         {action.id === 'call' ? (
-          <Input
-            label="Phone Number"
-            value={phoneNumber}
-            onChangeText={(value) => setPhoneNumber(normalizePhoneNumber(value))}
-            keyboardType="phone-pad"
-            placeholder="Enter number (10-15 digits)"
-          />
+          <>
+            <Input
+              label="Contact Name"
+              value={contactName}
+              onChangeText={setContactName}
+              autoCapitalize="words"
+              placeholder="e.g. Aman"
+            />
+            <Input
+              label="Phone Number (optional)"
+              value={phoneNumber}
+              onChangeText={(value) => setPhoneNumber(normalizePhoneNumber(value))}
+              keyboardType="phone-pad"
+              placeholder="Fallback number (10-15 digits)"
+            />
+          </>
         ) : null}
 
         <AppText muted style={styles.helperText}>
@@ -115,15 +125,22 @@ export const ActionCenterScreen = ({ navigation, route }: ActionCenterScreenProp
               return;
             }
 
-            if (action.id === 'call' && !/^[0-9]{10,15}$/.test(phoneNumber)) {
-              setStatus('Please enter a valid phone number for Smart Call.');
-              return;
+            const trimmedContactName = contactName.trim();
+            const hasValidPhoneNumber = /^[0-9]{10,15}$/.test(phoneNumber);
+
+            if (action.id === 'call') {
+              if (!trimmedContactName && !hasValidPhoneNumber) {
+                setStatus('Add contact name or a valid phone number for Smart Call.');
+                return;
+              }
             }
 
             navigation.navigate('TaskReview', {
               actionId: action.id,
               prompt: prompt.trim(),
-              targetPhoneNumber: action.id === 'call' ? phoneNumber : undefined
+              targetContactName:
+                action.id === 'call' && trimmedContactName ? trimmedContactName : undefined,
+              targetPhoneNumber: action.id === 'call' && hasValidPhoneNumber ? phoneNumber : undefined
             });
           }}
         />
