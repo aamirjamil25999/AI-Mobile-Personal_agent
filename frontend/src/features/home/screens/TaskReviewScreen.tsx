@@ -144,8 +144,10 @@ export const TaskReviewScreen = ({ navigation, route }: TaskReviewScreenProps) =
             return;
           }
 
-          navigation.navigate('ActionCenter', {
-            actionId: action.id
+          navigation.navigate('ExecutionStatus', {
+            actionId: action.id,
+            prompt: route.params.prompt,
+            safetyCount: selectedSafety.length
           });
         }}
         disabled={!isPlanReady}

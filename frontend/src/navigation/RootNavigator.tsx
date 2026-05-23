@@ -5,6 +5,7 @@ import { LoginScreen } from '@/features/auth/screens/LoginScreen';
 import type { QuickActionId } from '@/features/home/types/home';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ActionCenterScreen } from '@/features/home/screens/ActionCenterScreen';
+import { ExecutionStatusScreen } from '@/features/home/screens/ExecutionStatusScreen';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
 import { TaskReviewScreen } from '@/features/home/screens/TaskReviewScreen';
 import { useAppTheme } from '@/theme/useAppTheme';
@@ -18,6 +19,11 @@ export type RootStackParamList = {
   TaskReview: {
     actionId: QuickActionId;
     prompt: string;
+  };
+  ExecutionStatus: {
+    actionId: QuickActionId;
+    prompt: string;
+    safetyCount: number;
   };
 };
 
@@ -51,6 +57,11 @@ export const RootNavigator = () => {
             name="TaskReview"
             component={TaskReviewScreen}
             options={{ title: 'Task Review' }}
+          />
+          <Stack.Screen
+            name="ExecutionStatus"
+            component={ExecutionStatusScreen}
+            options={{ title: 'Execution Status' }}
           />
         </>
       ) : (
