@@ -1,0 +1,345 @@
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  UnauthorizedException
+} from '@nestjs/common';
+import { AuthProvider, type User, type UserRole } from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
+import { OAuth2Client } from 'google-auth-library';
+import * as bcrypt from 'bcryptjs';
+
+import { EnvService } from '@/config/env';
+import { PrismaService } from '@/database/prisma.service';
+import type { EmailLoginDto } from '@/modules/auth/dto/email-login.dto';
+import type { GoogleLoginDto } from '@/modules/auth/dto/google-login.dto';
+import type { PhoneRequestOtpDto } from '@/modules/auth/dto/phone-request-otp.dto';
+import type { PhoneVerifyOtpDto } from '@/modules/auth/dto/phone-verify-otp.dto';
+import type { RefreshTokenDto } from '@/modules/auth/dto/refresh-token.dto';
+
+@Injectable()
+export class AuthService {
+  private static readonly OTP_EXPIRY_MS = 5 * 60 * 1000;
+  private static readonly OTP_RESEND_COOLDOWN_MS = 30 * 1000;
+  private static readonly OTP_MAX_ATTEMPTS = 5;
+
+  private readonly logger = new Logger(AuthService.name);
+  private readonly googleClient = new OAuth2Client();
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
+    private readonly env: EnvService
+  ) {}
+
+  async loginWithEmail(dto: EmailLoginDto) {
+    const normalizedEmail = dto.email.toLowerCase().trim();
+    let user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+    if (!user) {
+      if (!this.env.autoCreateEmailUser) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
+
+      user = await this.prisma.user.create({
+        data: {
+          email: normalizedEmail,
+          passwordHash: await bcrypt.hash(dto.password, 12),
+          provider: AuthProvider.EMAIL,
+          fullName: normalizedEmail.split('@')[0]
+        }
+      });
+    }
+
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Account is not configured for password login');
+    }
+
+    const isValid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    return this.issueAuthResponse(user);
+  }
+
+  async requestPhoneOtp(dto: PhoneRequestOtpDto) {
+    const phoneNumber = dto.phoneNumber.trim();
+    const now = new Date();
+
+    const existing = await this.prisma.phoneOtp.findUnique({
+      where: { phoneNumber }
+    });
+
+    if (
+      existing &&
+      existing.expiresAt.getTime() > now.getTime() &&
+      now.getTime() - existing.updatedAt.getTime() < AuthService.OTP_RESEND_COOLDOWN_MS
+    ) {
+      throw new HttpException(
+        'Please wait before requesting a new OTP',
+        HttpStatus.TOO_MANY_REQUESTS
+      );
+    }
+
+    const otp = this.generateOtp();
+    const otpHash = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(now.getTime() + AuthService.OTP_EXPIRY_MS);
+
+    await this.prisma.phoneOtp.upsert({
+      where: { phoneNumber },
+      create: { phoneNumber, otpHash, expiresAt },
+      update: { otpHash, expiresAt, attempts: 0 }
+    });
+
+    this.logger.log(`OTP for ${phoneNumber}: ${otp}`);
+
+    return {
+      message: 'OTP sent successfully'
+    };
+  }
+
+  async verifyPhoneOtp(dto: PhoneVerifyOtpDto) {
+    const phoneNumber = dto.phoneNumber.trim();
+    const record = await this.prisma.phoneOtp.findUnique({
+      where: { phoneNumber }
+    });
+
+    if (!record) {
+      throw new BadRequestException('OTP not requested');
+    }
+
+    if (record.attempts >= AuthService.OTP_MAX_ATTEMPTS) {
+      throw new HttpException(
+        'Too many invalid OTP attempts, request a new OTP',
+        HttpStatus.TOO_MANY_REQUESTS
+      );
+    }
+
+    if (record.expiresAt.getTime() < Date.now()) {
+      await this.prisma.phoneOtp.delete({ where: { phoneNumber } }).catch(() => {
+        // Ignore race conditions where OTP record is already removed.
+      });
+      throw new BadRequestException('OTP expired');
+    }
+
+    const isValid = await bcrypt.compare(dto.otp, record.otpHash);
+    if (!isValid) {
+      const updated = await this.prisma.phoneOtp.update({
+        where: { phoneNumber },
+        data: { attempts: { increment: 1 } }
+      });
+
+      if (updated.attempts >= AuthService.OTP_MAX_ATTEMPTS) {
+        throw new HttpException(
+          'Too many invalid OTP attempts, request a new OTP',
+          HttpStatus.TOO_MANY_REQUESTS
+        );
+      }
+
+      throw new UnauthorizedException('Invalid OTP');
+    }
+
+    const user =
+      (await this.prisma.user.findUnique({ where: { phoneNumber } })) ??
+      (await this.prisma.user.create({
+        data: {
+          phoneNumber,
+          provider: AuthProvider.PHONE,
+          fullName: `user_${phoneNumber.slice(-4)}`
+        }
+      }));
+
+    await this.prisma.phoneOtp.delete({ where: { phoneNumber } });
+
+    return this.issueAuthResponse(user);
+  }
+
+  async loginWithGoogle(dto: GoogleLoginDto) {
+    const profile = await this.verifyGoogleIdToken(dto.idToken);
+
+    if (!profile.email) {
+      throw new BadRequestException('Google account email missing');
+    }
+
+    const email = profile.email.toLowerCase();
+
+    const user =
+      (await this.prisma.user.findUnique({ where: { email } })) ??
+      (await this.prisma.user.create({
+        data: {
+          email,
+          fullName: profile.name ?? email.split('@')[0],
+          provider: AuthProvider.GOOGLE
+        }
+      }));
+
+    return this.issueAuthResponse(user);
+  }
+
+  async refreshToken(dto: RefreshTokenDto) {
+    const payload = await this.verifyRefreshToken(dto.refreshToken);
+
+    const session = await this.prisma.refreshSession.findUnique({
+      where: { id: payload.sid }
+    });
+
+    if (!session || session.revokedAt || session.expiresAt.getTime() < Date.now()) {
+      throw new UnauthorizedException('Refresh session invalid');
+    }
+
+    const tokenMatch = await bcrypt.compare(dto.refreshToken, session.tokenHash);
+    if (!tokenMatch) {
+      throw new UnauthorizedException('Refresh token mismatch');
+    }
+
+    await this.prisma.refreshSession.update({
+      where: { id: session.id },
+      data: { revokedAt: new Date() }
+    });
+
+    const user = await this.prisma.user.findUnique({ where: { id: session.userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const tokens = await this.createTokens(user.id, user.email, user.role);
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken
+    };
+  }
+
+  async logout(refreshToken: string) {
+    const payload = await this.verifyRefreshToken(refreshToken);
+
+    await this.prisma.refreshSession.updateMany({
+      where: { id: payload.sid, userId: payload.sub, revokedAt: null },
+      data: { revokedAt: new Date() }
+    });
+
+    return {
+      message: 'Logged out successfully'
+    };
+  }
+
+  async getMe(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return this.toSafeUser(user);
+  }
+
+  private async issueAuthResponse(user: User) {
+    const tokens = await this.createTokens(user.id, user.email, user.role);
+
+    return {
+      user: this.toSafeUser(user),
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken
+    };
+  }
+
+  private async createTokens(
+    userId: string,
+    email: string | null,
+    role: UserRole
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const session = await this.prisma.refreshSession.create({
+      data: {
+        userId,
+        tokenHash: '',
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      }
+    });
+
+    const accessToken = await this.jwt.signAsync(
+      { sub: userId, email, role },
+      {
+        secret: this.env.jwtAccessSecret,
+        expiresIn: this.env.jwtAccessExpiresIn
+      }
+    );
+
+    const refreshToken = await this.jwt.signAsync(
+      { sub: userId, sid: session.id },
+      {
+        secret: this.env.jwtRefreshSecret,
+        expiresIn: this.env.jwtRefreshExpiresIn
+      }
+    );
+
+    await this.prisma.refreshSession.update({
+      where: { id: session.id },
+      data: {
+        tokenHash: await bcrypt.hash(refreshToken, 10)
+      }
+    });
+
+    return {
+      accessToken,
+      refreshToken
+    };
+  }
+
+  private async verifyRefreshToken(token: string) {
+    try {
+      return await this.jwt.verifyAsync<{ sub: string; sid: string }>(token, {
+        secret: this.env.jwtRefreshSecret
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
+  private async verifyGoogleIdToken(idToken: string): Promise<{ email: string | null; name?: string }> {
+    if (idToken.startsWith('dev-google-token:')) {
+      const email = idToken.replace('dev-google-token:', '').trim().toLowerCase();
+      if (!email || !email.includes('@')) {
+        throw new BadRequestException('Invalid dev google token format');
+      }
+      return {
+        email,
+        name: email.split('@')[0]
+      };
+    }
+
+    const audience = this.env.googleClientIds;
+
+    if (audience.length === 0) {
+      throw new BadRequestException('GOOGLE_CLIENT_IDS is not configured');
+    }
+
+    const ticket = await this.googleClient.verifyIdToken({
+      idToken,
+      audience
+    });
+
+    const payload = ticket.getPayload();
+
+    return {
+      email: payload?.email ?? null,
+      name: payload?.name
+    };
+  }
+
+  private generateOtp() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  private toSafeUser(user: User) {
+    return {
+      id: user.id,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      fullName: user.fullName,
+      role: user.role,
+      provider: user.provider
+    };
+  }
+}

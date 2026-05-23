@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "My Phone Agent",
+    "slug": "my-phone-agent",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.myphoneagent.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#050B17"
+      },
+      "package": "com.myphoneagent.app"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

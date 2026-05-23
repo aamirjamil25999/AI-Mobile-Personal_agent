@@ -1,0 +1,138 @@
+<svg width="1720" height="920" viewBox="0 0 1720 920" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A1020"/>
+      <stop offset="100%" stop-color="#1A2E57"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00E5A8"/>
+      <stop offset="100%" stop-color="#33A5FF"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="1720" height="920" fill="#0D1117"/>
+  <text x="44" y="56" fill="#E6EDF3" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="28" font-weight="700">My Phone Agent UI v1 (Android)</text>
+  <text x="44" y="88" fill="#9BA7B4" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16">Flow: Splash -> Setup -> Command Center -> Sensitive Action Approval</text>
+
+  <!-- Phone 1 -->
+  <g transform="translate(40,120)" filter="url(#shadow)">
+    <rect x="0" y="0" width="380" height="780" rx="40" fill="#0B1220" stroke="#293548" stroke-width="3"/>
+    <rect x="20" y="22" width="340" height="736" rx="28" fill="url(#bg)"/>
+    <rect x="155" y="34" width="70" height="8" rx="4" fill="#34445D"/>
+    <circle cx="190" cy="250" r="42" fill="url(#accent)"/>
+    <text x="190" y="258" text-anchor="middle" fill="#041326" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="28" font-weight="800">C</text>
+    <text x="190" y="336" text-anchor="middle" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="28" font-weight="700">Phone Agent</text>
+    <text x="190" y="366" text-anchor="middle" fill="#AFC2D8" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16">Your phone is waking up</text>
+    <rect x="80" y="660" width="220" height="12" rx="6" fill="#23344D"/>
+    <rect x="80" y="660" width="135" height="12" rx="6" fill="url(#accent)"/>
+  </g>
+  <text x="118" y="878" fill="#D0D8E0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="600">1. Splash</text>
+
+  <!-- Phone 2 -->
+  <g transform="translate(460,120)" filter="url(#shadow)">
+    <rect x="0" y="0" width="380" height="780" rx="40" fill="#0B1220" stroke="#293548" stroke-width="3"/>
+    <rect x="20" y="22" width="340" height="736" rx="28" fill="#121B2D"/>
+    <rect x="155" y="34" width="70" height="8" rx="4" fill="#34445D"/>
+    <text x="52" y="88" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="26" font-weight="700">Setup Agent</text>
+    <text x="52" y="118" fill="#96A7BD" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">Step 2 of 4 - Permissions</text>
+
+    <rect x="44" y="160" width="292" height="78" rx="16" fill="#1A2640"/>
+    <text x="62" y="193" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600">Calls & Contacts</text>
+    <text x="62" y="216" fill="#8FA4BE" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">Place calls and select contacts</text>
+    <rect x="286" y="186" width="34" height="20" rx="10" fill="#00D191"/>
+    <circle cx="304" cy="196" r="7" fill="#041326"/>
+
+    <rect x="44" y="252" width="292" height="78" rx="16" fill="#1A2640"/>
+    <text x="62" y="285" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600">SMS & Notifications</text>
+    <text x="62" y="308" fill="#8FA4BE" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">Read/send messages and alerts</text>
+    <rect x="286" y="278" width="34" height="20" rx="10" fill="#00D191"/>
+    <circle cx="304" cy="288" r="7" fill="#041326"/>
+
+    <rect x="44" y="344" width="292" height="78" rx="16" fill="#1A2640"/>
+    <text x="62" y="377" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600">Email Access</text>
+    <text x="62" y="400" fill="#8FA4BE" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">Draft and send emails</text>
+    <rect x="286" y="370" width="34" height="20" rx="10" fill="#4A5B73"/>
+    <circle cx="302" cy="380" r="7" fill="#E9EEF7"/>
+
+    <rect x="44" y="656" width="292" height="52" rx="12" fill="url(#accent)"/>
+    <text x="190" y="688" text-anchor="middle" fill="#041326" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="700">Continue</text>
+  </g>
+  <text x="521" y="878" fill="#D0D8E0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="600">2. Setup Wizard</text>
+
+  <!-- Phone 3 -->
+  <g transform="translate(880,120)" filter="url(#shadow)">
+    <rect x="0" y="0" width="380" height="780" rx="40" fill="#0B1220" stroke="#293548" stroke-width="3"/>
+    <rect x="20" y="22" width="340" height="736" rx="28" fill="#111A2B"/>
+    <rect x="155" y="34" width="70" height="8" rx="4" fill="#34445D"/>
+
+    <text x="52" y="82" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">Command Center</text>
+    <text x="52" y="106" fill="#8FA4BE" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">Agent Online • Personal Mode</text>
+
+    <rect x="44" y="126" width="292" height="64" rx="14" fill="#1A2741"/>
+    <text x="58" y="162" fill="#93A7C2" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">Type or speak a command...</text>
+    <circle cx="306" cy="158" r="18" fill="url(#accent)"/>
+
+    <text x="52" y="224" fill="#B8C8DA" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Quick Actions</text>
+
+    <rect x="44" y="238" width="138" height="64" rx="14" fill="#19253D"/>
+    <text x="60" y="276" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600">Call</text>
+
+    <rect x="198" y="238" width="138" height="64" rx="14" fill="#19253D"/>
+    <text x="214" y="276" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600">Message</text>
+
+    <rect x="44" y="316" width="138" height="64" rx="14" fill="#19253D"/>
+    <text x="60" y="354" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600">Email</text>
+
+    <rect x="198" y="316" width="138" height="64" rx="14" fill="#19253D"/>
+    <text x="214" y="354" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600">Settings</text>
+
+    <text x="52" y="418" fill="#B8C8DA" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Automations</text>
+    <rect x="44" y="432" width="292" height="72" rx="14" fill="#16233A"/>
+    <text x="60" y="462" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="15" font-weight="600">Morning Routine</text>
+    <text x="60" y="484" fill="#90A4BE" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12">8:00 AM • Weather + Calendar + Focus Mode</text>
+
+    <text x="52" y="538" fill="#B8C8DA" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Recent Activity</text>
+    <rect x="44" y="550" width="292" height="54" rx="12" fill="#16253D"/>
+    <text x="60" y="582" fill="#CFE0F2" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">SMS sent to Rahul • 2m ago</text>
+
+    <rect x="44" y="616" width="292" height="54" rx="12" fill="#16253D"/>
+    <text x="60" y="648" fill="#CFE0F2" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">Email draft ready • needs approval</text>
+
+    <rect x="44" y="700" width="292" height="8" rx="4" fill="#22354D"/>
+  </g>
+  <text x="946" y="878" fill="#D0D8E0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="600">3. Home - Command Center</text>
+
+  <!-- Phone 4 -->
+  <g transform="translate(1300,120)" filter="url(#shadow)">
+    <rect x="0" y="0" width="380" height="780" rx="40" fill="#0B1220" stroke="#293548" stroke-width="3"/>
+    <rect x="20" y="22" width="340" height="736" rx="28" fill="#10182A"/>
+    <rect x="155" y="34" width="70" height="8" rx="4" fill="#34445D"/>
+
+    <text x="52" y="88" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">Approval Required</text>
+    <text x="52" y="114" fill="#99ABC0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">High-risk action detected</text>
+
+    <rect x="44" y="144" width="292" height="210" rx="16" fill="#17243C"/>
+    <text x="62" y="180" fill="#B7C8DB" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">Action</text>
+    <text x="62" y="204" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="17" font-weight="700">Enable Airplane Mode</text>
+
+    <text x="62" y="244" fill="#B7C8DB" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">Requested by</text>
+    <text x="62" y="268" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="15">"Turn off all connectivity now"</text>
+
+    <text x="62" y="308" fill="#B7C8DB" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">Risk level</text>
+    <rect x="126" y="292" width="62" height="22" rx="11" fill="#FFBC42"/>
+    <text x="157" y="307" text-anchor="middle" fill="#251700" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="700">MEDIUM</text>
+
+    <rect x="44" y="392" width="292" height="58" rx="14" fill="#1A2741"/>
+    <text x="64" y="426" fill="#EAF2FF" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="15">Authenticate with biometrics</text>
+
+    <rect x="44" y="468" width="292" height="56" rx="12" fill="url(#accent)"/>
+    <text x="190" y="503" text-anchor="middle" fill="#041326" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="700">Approve Action</text>
+
+    <rect x="44" y="536" width="292" height="56" rx="12" fill="#1B2437"/>
+    <text x="190" y="571" text-anchor="middle" fill="#D6E2F0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="700">Cancel</text>
+  </g>
+  <text x="1362" y="878" fill="#D0D8E0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="18" font-weight="600">4. Security Approval Sheet</text>
+</svg>
