@@ -11,6 +11,7 @@ export const API_BASE_URL = (baseFromEnv ?? defaultBaseUrl).replace(/\/+$/, '');
 
 export const API_ENDPOINTS = {
   auth: {
+    emailSignup: '/auth/email/signup',
     emailLogin: '/auth/email/login',
     requestPhoneOtp: '/auth/phone/request-otp',
     verifyPhoneOtp: '/auth/phone/verify-otp',

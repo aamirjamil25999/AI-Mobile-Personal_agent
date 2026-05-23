@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -10,14 +11,15 @@ import { AuthProvider, type User, type UserRole } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { OAuth2Client } from 'google-auth-library';
 import * as bcrypt from 'bcryptjs';
+import type { CookieOptions } from 'express';
 
 import { EnvService } from '@/config/env';
 import { PrismaService } from '@/database/prisma.service';
 import type { EmailLoginDto } from '@/modules/auth/dto/email-login.dto';
+import type { EmailSignupDto } from '@/modules/auth/dto/email-signup.dto';
 import type { GoogleLoginDto } from '@/modules/auth/dto/google-login.dto';
 import type { PhoneRequestOtpDto } from '@/modules/auth/dto/phone-request-otp.dto';
 import type { PhoneVerifyOtpDto } from '@/modules/auth/dto/phone-verify-otp.dto';
-import type { RefreshTokenDto } from '@/modules/auth/dto/refresh-token.dto';
 
 @Injectable()
 export class AuthService {
@@ -34,23 +36,37 @@ export class AuthService {
     private readonly env: EnvService
   ) {}
 
+  async signupWithEmail(dto: EmailSignupDto) {
+    const normalizedEmail = dto.email.toLowerCase().trim();
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Account already exists for this email');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const fullName = dto.fullName?.trim() || normalizedEmail.split('@')[0];
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        passwordHash,
+        provider: AuthProvider.EMAIL,
+        fullName
+      }
+    });
+
+    return this.issueAuthResponse(user);
+  }
+
   async loginWithEmail(dto: EmailLoginDto) {
     const normalizedEmail = dto.email.toLowerCase().trim();
-    let user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     if (!user) {
-      if (!this.env.autoCreateEmailUser) {
-        throw new UnauthorizedException('Invalid email or password');
-      }
-
-      user = await this.prisma.user.create({
-        data: {
-          email: normalizedEmail,
-          passwordHash: await bcrypt.hash(dto.password, 12),
-          provider: AuthProvider.EMAIL,
-          fullName: normalizedEmail.split('@')[0]
-        }
-      });
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     if (!user.passwordHash) {
@@ -179,8 +195,8 @@ export class AuthService {
     return this.issueAuthResponse(user);
   }
 
-  async refreshToken(dto: RefreshTokenDto) {
-    const payload = await this.verifyRefreshToken(dto.refreshToken);
+  async refreshToken(refreshToken: string) {
+    const payload = await this.verifyRefreshToken(refreshToken);
 
     const session = await this.prisma.refreshSession.findUnique({
       where: { id: payload.sid }
@@ -190,7 +206,7 @@ export class AuthService {
       throw new UnauthorizedException('Refresh session invalid');
     }
 
-    const tokenMatch = await bcrypt.compare(dto.refreshToken, session.tokenHash);
+    const tokenMatch = await bcrypt.compare(refreshToken, session.tokenHash);
     if (!tokenMatch) {
       throw new UnauthorizedException('Refresh token mismatch');
     }
@@ -207,14 +223,25 @@ export class AuthService {
 
     const tokens = await this.createTokens(user.id, user.email, user.role);
 
-    return {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken
-    };
+    return tokens;
   }
 
-  async logout(refreshToken: string) {
-    const payload = await this.verifyRefreshToken(refreshToken);
+  async logout(refreshToken?: string) {
+    if (!refreshToken) {
+      return {
+        message: 'Logged out successfully'
+      };
+    }
+
+    let payload: { sub: string; sid: string };
+
+    try {
+      payload = await this.verifyRefreshToken(refreshToken);
+    } catch {
+      return {
+        message: 'Logged out successfully'
+      };
+    }
 
     await this.prisma.refreshSession.updateMany({
       where: { id: payload.sid, userId: payload.sub, revokedAt: null },
@@ -235,7 +262,25 @@ export class AuthService {
     return this.toSafeUser(user);
   }
 
-  private async issueAuthResponse(user: User) {
+  getRefreshCookieConfig(): { name: string; options: CookieOptions } {
+    return {
+      name: this.env.refreshCookieName,
+      options: {
+        httpOnly: true,
+        secure: this.env.isProduction,
+        sameSite: 'lax',
+        path: '/api/auth',
+        maxAge: this.env.refreshCookieMaxAgeMs,
+        ...(this.env.cookieDomain ? { domain: this.env.cookieDomain } : {})
+      }
+    };
+  }
+
+  private async issueAuthResponse(user: User): Promise<{
+    user: ReturnType<AuthService['toSafeUser']>;
+    accessToken: string;
+    refreshToken: string;
+  }> {
     const tokens = await this.createTokens(user.id, user.email, user.role);
 
     return {
@@ -254,7 +299,7 @@ export class AuthService {
       data: {
         userId,
         tokenHash: '',
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        expiresAt: new Date(Date.now() + this.env.refreshCookieMaxAgeMs)
       }
     });
 

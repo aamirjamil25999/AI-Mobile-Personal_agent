@@ -11,16 +11,18 @@ export type UserProfile = {
   provider: AuthProvider;
 };
 
-export type AuthTokens = {
-  accessToken: string;
-  refreshToken: string;
-};
-
 export type AuthResponse = {
   user: UserProfile;
-} & AuthTokens;
+  accessToken: string;
+};
 
 export type EmailLoginInput = {
+  email: string;
+  password: string;
+};
+
+export type EmailSignupInput = {
+  fullName?: string;
   email: string;
   password: string;
 };

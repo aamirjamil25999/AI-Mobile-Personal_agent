@@ -4,8 +4,7 @@ import { Provider } from 'react-redux';
 
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { authApi } from '@/features/auth/api/authApi';
-import { clearSession, setTokens, setUser } from '@/features/auth/slices/authSlice';
-import { secureStorage } from '@/services/secureStorage';
+import { clearSession, setAccessToken, setUser } from '@/features/auth/slices/authSlice';
 import { store } from '@/store';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { getTheme } from '@/theme';
@@ -16,20 +15,12 @@ const AppShell = () => {
 
   useEffect(() => {
     const bootstrapSession = async () => {
-      const refreshToken = await secureStorage.getRefreshToken();
-      if (!refreshToken) {
-        return;
-      }
-
       try {
-        const refresh = await dispatch(
-          authApi.endpoints.refreshToken.initiate({ refreshToken })
-        ).unwrap();
+        const refresh = await dispatch(authApi.endpoints.refreshToken.initiate()).unwrap();
 
         dispatch(
-          setTokens({
-            accessToken: refresh.accessToken,
-            refreshToken: refresh.refreshToken
+          setAccessToken({
+            accessToken: refresh.accessToken
           })
         );
 
@@ -37,7 +28,6 @@ const AppShell = () => {
 
         dispatch(setUser(me));
       } catch {
-        await secureStorage.clearTokens();
         dispatch(clearSession());
       }
     };

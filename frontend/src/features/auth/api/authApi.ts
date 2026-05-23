@@ -4,6 +4,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/constants/api';
 import type {
   AuthResponse,
   EmailLoginInput,
+  EmailSignupInput,
   GoogleLoginInput,
   PhoneRequestOtpInput,
   PhoneVerifyOtpInput,
@@ -11,13 +12,8 @@ import type {
 } from '@/features/auth/types/auth';
 import type { RootState } from '@/store';
 
-type RefreshInput = {
-  refreshToken: string;
-};
-
 type RefreshResponse = {
   accessToken: string;
-  refreshToken: string;
 };
 
 type OtpResponse = {
@@ -28,6 +24,7 @@ export const authApi = createApi({
   reducerPath: 'authApi',
   baseQuery: fetchBaseQuery({
     baseUrl: API_BASE_URL,
+    credentials: 'include',
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.accessToken;
       if (token) {
@@ -38,6 +35,13 @@ export const authApi = createApi({
     }
   }),
   endpoints: (builder) => ({
+    signupWithEmail: builder.mutation<AuthResponse, EmailSignupInput>({
+      query: (body) => ({
+        url: API_ENDPOINTS.auth.emailSignup,
+        method: 'POST',
+        body
+      })
+    }),
     loginWithEmail: builder.mutation<AuthResponse, EmailLoginInput>({
       query: (body) => ({
         url: API_ENDPOINTS.auth.emailLogin,
@@ -66,18 +70,16 @@ export const authApi = createApi({
         body
       })
     }),
-    refreshToken: builder.mutation<RefreshResponse, RefreshInput>({
-      query: (body) => ({
+    refreshToken: builder.mutation<RefreshResponse, void>({
+      query: () => ({
         url: API_ENDPOINTS.auth.refresh,
-        method: 'POST',
-        body
+        method: 'POST'
       })
     }),
-    logout: builder.mutation<{ message: string }, { refreshToken: string }>({
-      query: (body) => ({
+    logout: builder.mutation<{ message: string }, void>({
+      query: () => ({
         url: API_ENDPOINTS.auth.logout,
-        method: 'POST',
-        body
+        method: 'POST'
       })
     }),
     getMe: builder.query<UserProfile, void>({
@@ -90,6 +92,7 @@ export const authApi = createApi({
 });
 
 export const {
+  useSignupWithEmailMutation,
   useLoginWithEmailMutation,
   useRequestPhoneOtpMutation,
   useVerifyPhoneOtpMutation,

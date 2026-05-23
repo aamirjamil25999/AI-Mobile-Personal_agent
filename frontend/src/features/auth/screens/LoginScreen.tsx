@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Google from 'expo-auth-session/providers/google';
@@ -14,91 +14,53 @@ import {
   useLoginWithEmailMutation,
   useLoginWithGoogleMutation,
   useRequestPhoneOtpMutation,
+  useSignupWithEmailMutation,
   useVerifyPhoneOtpMutation
 } from '@/features/auth/api/authApi';
 import { setCredentials } from '@/features/auth/slices/authSlice';
-import type { EmailLoginInput } from '@/features/auth/types/auth';
+import type { EmailLoginInput, EmailSignupInput } from '@/features/auth/types/auth';
 import { toggleThemeMode } from '@/features/theme/slices/themeSlice';
-import { secureStorage } from '@/services/secureStorage';
 import { useAppDispatch } from '@/store/hooks';
 import { useAppTheme } from '@/theme/useAppTheme';
-import { emailLoginSchema } from '@/utils/validators';
+import {
+  emailLoginSchema,
+  emailSignupSchema,
+  otpSchema,
+  phoneSchema
+} from '@/utils/validators';
 
 WebBrowser.maybeCompleteAuthSession();
 
 type LoginMode = 'email' | 'phone' | 'google';
+type EmailMode = 'signin' | 'signup';
 
-type GoogleAuthCardProps = {
-  androidClientId: string;
-  iosClientId: string;
-  webClientId: string;
-  isLoading: boolean;
-  onError: (message: string) => void;
-  onSuccess: (idToken: string) => Promise<void>;
+type EmailSignupFormValues = EmailSignupInput & {
+  confirmPassword: string;
 };
 
-const GoogleAuthCard = ({
-  androidClientId,
-  iosClientId,
-  webClientId,
-  isLoading,
-  onError,
-  onSuccess
-}: GoogleAuthCardProps) => {
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId,
-    androidClientId,
-    webClientId
-  });
+const GOOGLE_CLIENT_PLACEHOLDER =
+  '000000000000-placeholderplaceholderplaceholder.apps.googleusercontent.com';
 
-  useEffect(() => {
-    if (!response) {
-      return;
-    }
+const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
-    if (response.type === 'error') {
-      onError('Google sign-in cancelled or failed.');
-      return;
-    }
-
-    if (response.type !== 'success') {
-      return;
-    }
-
-    const idToken = response.authentication?.idToken;
-    if (!idToken) {
-      onError('Google token missing, try again.');
-      return;
-    }
-
-    void onSuccess(idToken);
-  }, [onError, onSuccess, response]);
-
-  return (
-    <View>
-      <Button
-        label="Continue with Google"
-        onPress={() => void promptAsync()}
-        disabled={!request}
-        isLoading={isLoading}
-      />
-      <AppText muted style={styles.note}>
-        Use your Google account to sign in.
-      </AppText>
-    </View>
-  );
-};
+const hasGoogleConfig = Boolean(
+  googleIosClientId || googleAndroidClientId || googleWebClientId
+);
 
 export const LoginScreen = () => {
   const theme = useAppTheme();
   const dispatch = useAppDispatch();
 
   const [mode, setMode] = useState<LoginMode>('email');
+  const [emailMode, setEmailMode] = useState<EmailMode>('signin');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  const [signupWithEmail, { isLoading: isSignupLoading }] = useSignupWithEmailMutation();
   const [loginWithEmail, { isLoading: isEmailLoading }] = useLoginWithEmailMutation();
   const [requestPhoneOtp, { isLoading: isPhoneRequestLoading }] =
     useRequestPhoneOtpMutation();
@@ -107,9 +69,9 @@ export const LoginScreen = () => {
   const [loginWithGoogle, { isLoading: isGoogleLoading }] = useLoginWithGoogleMutation();
 
   const {
-    control,
-    handleSubmit,
-    formState: { errors }
+    control: loginControl,
+    handleSubmit: handleLoginSubmit,
+    formState: { errors: loginErrors }
   } = useForm<EmailLoginInput>({
     resolver: zodResolver(emailLoginSchema),
     defaultValues: {
@@ -118,49 +80,52 @@ export const LoginScreen = () => {
     }
   });
 
-  const googleClientIds = useMemo(
-    () => ({
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() ?? '',
-      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim() ?? '',
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() ?? ''
-    }),
-    []
-  );
-
-  const missingGoogleEnvVar = useMemo(() => {
-    if (Platform.OS === 'android') {
-      return 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID';
+  const {
+    control: signupControl,
+    handleSubmit: handleSignupSubmit,
+    formState: { errors: signupErrors }
+  } = useForm<EmailSignupFormValues>({
+    resolver: zodResolver(emailSignupSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
     }
+  });
 
-    if (Platform.OS === 'ios') {
-      return 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID';
-    }
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    iosClientId:
+      googleIosClientId ?? googleWebClientId ?? googleAndroidClientId ?? GOOGLE_CLIENT_PLACEHOLDER,
+    androidClientId:
+      googleAndroidClientId ?? googleWebClientId ?? googleIosClientId ?? GOOGLE_CLIENT_PLACEHOLDER,
+    webClientId:
+      googleWebClientId ?? googleAndroidClientId ?? googleIosClientId ?? GOOGLE_CLIENT_PLACEHOLDER
+  });
 
-    return 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID';
-  }, []);
+  useEffect(() => {
+    const completeGoogleSignIn = async () => {
+      if (response?.type !== 'success') {
+        return;
+      }
 
-  const isGoogleConfigured = useMemo(() => {
-    if (Platform.OS === 'android') {
-      return Boolean(googleClientIds.androidClientId);
-    }
+      const idToken = response.authentication?.idToken;
+      if (!idToken) {
+        setStatusMessage('Google token missing, try again.');
+        return;
+      }
 
-    if (Platform.OS === 'ios') {
-      return Boolean(googleClientIds.iosClientId);
-    }
+      try {
+        const auth = await loginWithGoogle({ idToken }).unwrap();
+        dispatch(setCredentials(auth));
+        setStatusMessage('Signed in with Google');
+      } catch {
+        setStatusMessage('Google login failed.');
+      }
+    };
 
-    return Boolean(googleClientIds.webClientId);
-  }, [googleClientIds.androidClientId, googleClientIds.iosClientId, googleClientIds.webClientId]);
-
-  const handleGoogleToken = async (idToken: string) => {
-    try {
-      const auth = await loginWithGoogle({ idToken }).unwrap();
-      await secureStorage.saveTokens(auth.accessToken, auth.refreshToken);
-      dispatch(setCredentials(auth));
-      setStatusMessage('Signed in with Google');
-    } catch {
-      setStatusMessage('Google login failed.');
-    }
-  };
+    void completeGoogleSignIn();
+  }, [dispatch, loginWithGoogle, response]);
 
   useEffect(() => {
     setStatusMessage(null);
@@ -171,11 +136,10 @@ export const LoginScreen = () => {
     }
   }, [mode]);
 
-  const handleEmailLogin = handleSubmit(async (values) => {
+  const handleEmailLogin = handleLoginSubmit(async (values) => {
     setStatusMessage(null);
     try {
       const auth = await loginWithEmail(values).unwrap();
-      await secureStorage.saveTokens(auth.accessToken, auth.refreshToken);
       dispatch(setCredentials(auth));
       setStatusMessage('Email login successful');
     } catch {
@@ -183,9 +147,27 @@ export const LoginScreen = () => {
     }
   });
 
+  const handleEmailSignup = handleSignupSubmit(async (values) => {
+    setStatusMessage(null);
+
+    try {
+      const auth = await signupWithEmail({
+        fullName: values.fullName?.trim() ? values.fullName.trim() : undefined,
+        email: values.email,
+        password: values.password
+      }).unwrap();
+
+      dispatch(setCredentials(auth));
+      setStatusMessage('Account created successfully');
+    } catch {
+      setStatusMessage('Signup failed. Try a different email.');
+    }
+  });
+
   const handleSendOtp = async () => {
-    if (!/^[0-9]{10,15}$/.test(phoneNumber)) {
-      setStatusMessage('Enter valid phone number (10-15 digits).');
+    const parsed = phoneSchema.safeParse({ phoneNumber });
+    if (!parsed.success) {
+      setStatusMessage(parsed.error.issues[0]?.message ?? 'Enter a valid phone number.');
       return;
     }
 
@@ -193,21 +175,21 @@ export const LoginScreen = () => {
       await requestPhoneOtp({ phoneNumber }).unwrap();
       setOtpSent(true);
       setOtp('');
-      setStatusMessage('OTP sent. Use the OTP shown in backend logs for local testing.');
+      setStatusMessage('OTP sent. Use backend log OTP for local testing.');
     } catch {
       setStatusMessage('Failed to send OTP.');
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (!/^[0-9]{6}$/.test(otp)) {
-      setStatusMessage('OTP must be 6 digits.');
+    const parsed = otpSchema.safeParse({ otp });
+    if (!parsed.success) {
+      setStatusMessage(parsed.error.issues[0]?.message ?? 'OTP must be 6 digits.');
       return;
     }
 
     try {
       const auth = await verifyPhoneOtp({ phoneNumber, otp }).unwrap();
-      await secureStorage.saveTokens(auth.accessToken, auth.refreshToken);
       dispatch(setCredentials(auth));
       setStatusMessage('Phone login successful');
     } catch {
@@ -215,22 +197,41 @@ export const LoginScreen = () => {
     }
   };
 
+  const handleGooglePress = async () => {
+    if (!hasGoogleConfig) {
+      setStatusMessage('Google login is not configured yet. Add client IDs in frontend .env.');
+      return;
+    }
+
+    if (!request) {
+      setStatusMessage('Google auth is initializing. Try again in a moment.');
+      return;
+    }
+
+    await promptAsync();
+  };
+
   const modeLabel = useMemo(() => {
     if (mode === 'email') {
-      return 'Email + Password';
+      return emailMode === 'signin' ? 'Email Sign In' : 'Email Sign Up';
     }
     if (mode === 'phone') {
       return 'Phone + OTP';
     }
     return 'Google OAuth';
-  }, [mode]);
+  }, [mode, emailMode]);
 
   return (
     <ScreenContainer>
-      <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme.colors.card, borderColor: theme.colors.border }
+        ]}
+      >
         <AppText style={styles.title}>My Phone Agent</AppText>
         <AppText muted style={styles.subtitle}>
-          Secure sign in with {modeLabel}
+          Secure auth with {modeLabel}
         </AppText>
 
         <View style={styles.modeRow}>
@@ -258,36 +259,120 @@ export const LoginScreen = () => {
         </View>
 
         {mode === 'email' ? (
-          <View>
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onChange, value } }) => (
-                <Input
-                  label="Email"
-                  value={value}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  onChangeText={onChange}
-                  error={errors.email?.message}
+          <>
+            <View style={styles.modeRow}>
+              <Button
+                label="Sign In"
+                variant={emailMode === 'signin' ? 'primary' : 'secondary'}
+                fullWidth={false}
+                onPress={() => setEmailMode('signin')}
+                style={styles.modeButton}
+              />
+              <Button
+                label="Sign Up"
+                variant={emailMode === 'signup' ? 'primary' : 'secondary'}
+                fullWidth={false}
+                onPress={() => setEmailMode('signup')}
+                style={styles.modeButton}
+              />
+            </View>
+
+            {emailMode === 'signin' ? (
+              <View>
+                <Controller
+                  control={loginControl}
+                  name="email"
+                  render={({ field: { onChange, value } }) => (
+                    <Input
+                      label="Email"
+                      value={value}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                      onChangeText={onChange}
+                      error={loginErrors.email?.message}
+                    />
+                  )}
                 />
-              )}
-            />
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, value } }) => (
-                <PasswordInput
-                  label="Password"
-                  value={value}
-                  onChangeText={onChange}
-                  error={errors.password?.message}
+                <Controller
+                  control={loginControl}
+                  name="password"
+                  render={({ field: { onChange, value } }) => (
+                    <PasswordInput
+                      label="Password"
+                      value={value}
+                      onChangeText={onChange}
+                      error={loginErrors.password?.message}
+                    />
+                  )}
                 />
-              )}
-            />
-            <Button label="Login" onPress={handleEmailLogin} isLoading={isEmailLoading} />
-          </View>
+                <Button label="Login" onPress={handleEmailLogin} isLoading={isEmailLoading} />
+              </View>
+            ) : (
+              <View>
+                <Controller
+                  control={signupControl}
+                  name="fullName"
+                  render={({ field: { onChange, value } }) => (
+                    <Input
+                      label="Full Name (optional)"
+                      value={value ?? ''}
+                      autoCapitalize="words"
+                      onChangeText={onChange}
+                      error={signupErrors.fullName?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  control={signupControl}
+                  name="email"
+                  render={({ field: { onChange, value } }) => (
+                    <Input
+                      label="Email"
+                      value={value}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                      onChangeText={onChange}
+                      error={signupErrors.email?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  control={signupControl}
+                  name="password"
+                  render={({ field: { onChange, value } }) => (
+                    <PasswordInput
+                      label="Password"
+                      value={value}
+                      onChangeText={onChange}
+                      error={signupErrors.password?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  control={signupControl}
+                  name="confirmPassword"
+                  render={({ field: { onChange, value } }) => (
+                    <PasswordInput
+                      label="Confirm Password"
+                      value={value}
+                      onChangeText={onChange}
+                      error={signupErrors.confirmPassword?.message}
+                    />
+                  )}
+                />
+                <AppText muted style={styles.passwordHint}>
+                  Use 10+ chars with uppercase, lowercase, number, and special symbol.
+                </AppText>
+                <Button
+                  label="Create Account"
+                  onPress={handleEmailSignup}
+                  isLoading={isSignupLoading}
+                />
+              </View>
+            )}
+          </>
         ) : null}
 
         {mode === 'phone' ? (
@@ -309,11 +394,7 @@ export const LoginScreen = () => {
               />
             ) : null}
             {!otpSent ? (
-              <Button
-                label="Send OTP"
-                onPress={handleSendOtp}
-                isLoading={isPhoneRequestLoading}
-              />
+              <Button label="Send OTP" onPress={handleSendOtp} isLoading={isPhoneRequestLoading} />
             ) : (
               <>
                 <Button
@@ -335,25 +416,18 @@ export const LoginScreen = () => {
 
         {mode === 'google' ? (
           <View>
-            {isGoogleConfigured ? (
-              <GoogleAuthCard
-                iosClientId={googleClientIds.iosClientId}
-                androidClientId={googleClientIds.androidClientId}
-                webClientId={googleClientIds.webClientId}
-                isLoading={isGoogleLoading}
-                onError={setStatusMessage}
-                onSuccess={handleGoogleToken}
-              />
-            ) : (
-              <AppText muted style={styles.note}>
-                Google login config missing. Add {missingGoogleEnvVar} in frontend `.env`.
+            <Button
+              label={hasGoogleConfig ? 'Continue with Google' : 'Google Not Configured'}
+              onPress={() => void handleGooglePress()}
+              isLoading={isGoogleLoading}
+              disabled={!hasGoogleConfig}
+            />
+            {!hasGoogleConfig ? (
+              <AppText muted style={styles.googleHint}>
+                Add Google client IDs in `frontend/.env` to enable this.
               </AppText>
-            )}
+            ) : null}
           </View>
-        ) : null}
-
-        {statusMessage ? (
-          <AppText style={[styles.status, { color: theme.colors.textMuted }]}>{statusMessage}</AppText>
         ) : null}
 
         <Button
@@ -362,6 +436,10 @@ export const LoginScreen = () => {
           onPress={() => dispatch(toggleThemeMode())}
           style={styles.themeButton}
         />
+
+        {statusMessage ? (
+          <AppText style={[styles.status, { color: theme.colors.textMuted }]}>{statusMessage}</AppText>
+        ) : null}
       </View>
     </ScreenContainer>
   );
@@ -370,38 +448,43 @@ export const LoginScreen = () => {
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    padding: 16,
-    borderRadius: 18,
-    marginTop: 24
+    borderRadius: 20,
+    padding: 18,
+    gap: 12
   },
   title: {
     fontSize: 28,
-    fontWeight: '800'
+    fontWeight: '800',
+    lineHeight: 34
   },
   subtitle: {
-    marginTop: 6,
-    marginBottom: 14
+    marginBottom: 6
   },
   modeRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 16
+    marginBottom: 4
   },
   modeButton: {
-    flex: 1,
-    minHeight: 42
-  },
-  note: {
-    marginTop: 8,
-    fontSize: 12
-  },
-  status: {
-    marginTop: 14
-  },
-  themeButton: {
-    marginTop: 20
+    flex: 1
   },
   resendButton: {
     marginTop: 10
+  },
+  themeButton: {
+    marginTop: 8
+  },
+  passwordHint: {
+    fontSize: 12,
+    marginTop: -4,
+    marginBottom: 10
+  },
+  googleHint: {
+    marginTop: 10,
+    fontSize: 12
+  },
+  status: {
+    marginTop: 4,
+    fontSize: 13
   }
 });

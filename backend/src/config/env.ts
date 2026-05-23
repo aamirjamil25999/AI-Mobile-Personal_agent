@@ -2,6 +2,14 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class EnvService {
+  get nodeEnv() {
+    return process.env.NODE_ENV ?? 'development';
+  }
+
+  get isProduction() {
+    return this.nodeEnv === 'production';
+  }
+
   get port() {
     return Number(process.env.PORT ?? 3000);
   }
@@ -46,7 +54,23 @@ export class EnvService {
       .filter(Boolean);
   }
 
-  get autoCreateEmailUser() {
-    return process.env.DEV_AUTO_CREATE_EMAIL_USER === 'true';
+  get corsOrigins() {
+    const raw = process.env.CORS_ORIGINS ?? '';
+    return raw
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+  }
+
+  get refreshCookieName() {
+    return process.env.REFRESH_COOKIE_NAME ?? 'my_phone_agent_refresh';
+  }
+
+  get cookieDomain() {
+    return process.env.COOKIE_DOMAIN;
+  }
+
+  get refreshCookieMaxAgeMs() {
+    return Number(process.env.REFRESH_COOKIE_MAX_AGE_MS ?? 30 * 24 * 60 * 60 * 1000);
   }
 }
