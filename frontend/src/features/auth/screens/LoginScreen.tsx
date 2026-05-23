@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Google from 'expo-auth-session/providers/google';
@@ -27,6 +27,67 @@ import { emailLoginSchema } from '@/utils/validators';
 WebBrowser.maybeCompleteAuthSession();
 
 type LoginMode = 'email' | 'phone' | 'google';
+
+type GoogleAuthCardProps = {
+  androidClientId: string;
+  iosClientId: string;
+  webClientId: string;
+  isLoading: boolean;
+  onError: (message: string) => void;
+  onSuccess: (idToken: string) => Promise<void>;
+};
+
+const GoogleAuthCard = ({
+  androidClientId,
+  iosClientId,
+  webClientId,
+  isLoading,
+  onError,
+  onSuccess
+}: GoogleAuthCardProps) => {
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    iosClientId,
+    androidClientId,
+    webClientId
+  });
+
+  useEffect(() => {
+    if (!response) {
+      return;
+    }
+
+    if (response.type === 'error') {
+      onError('Google sign-in cancelled or failed.');
+      return;
+    }
+
+    if (response.type !== 'success') {
+      return;
+    }
+
+    const idToken = response.authentication?.idToken;
+    if (!idToken) {
+      onError('Google token missing, try again.');
+      return;
+    }
+
+    void onSuccess(idToken);
+  }, [onError, onSuccess, response]);
+
+  return (
+    <View>
+      <Button
+        label="Continue with Google"
+        onPress={() => void promptAsync()}
+        disabled={!request}
+        isLoading={isLoading}
+      />
+      <AppText muted style={styles.note}>
+        Use your Google account to sign in.
+      </AppText>
+    </View>
+  );
+};
 
 export const LoginScreen = () => {
   const theme = useAppTheme();
@@ -57,36 +118,49 @@ export const LoginScreen = () => {
     }
   });
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
-  });
+  const googleClientIds = useMemo(
+    () => ({
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() ?? '',
+      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?.trim() ?? '',
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() ?? ''
+    }),
+    []
+  );
 
-  useEffect(() => {
-    const completeGoogleSignIn = async () => {
-      if (response?.type !== 'success') {
-        return;
-      }
+  const missingGoogleEnvVar = useMemo(() => {
+    if (Platform.OS === 'android') {
+      return 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID';
+    }
 
-      const idToken = response.authentication?.idToken;
-      if (!idToken) {
-        setStatusMessage('Google token missing, try again.');
-        return;
-      }
+    if (Platform.OS === 'ios') {
+      return 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID';
+    }
 
-      try {
-        const auth = await loginWithGoogle({ idToken }).unwrap();
-        await secureStorage.saveTokens(auth.accessToken, auth.refreshToken);
-        dispatch(setCredentials(auth));
-        setStatusMessage('Signed in with Google');
-      } catch {
-        setStatusMessage('Google login failed.');
-      }
-    };
+    return 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID';
+  }, []);
 
-    void completeGoogleSignIn();
-  }, [dispatch, loginWithGoogle, response]);
+  const isGoogleConfigured = useMemo(() => {
+    if (Platform.OS === 'android') {
+      return Boolean(googleClientIds.androidClientId);
+    }
+
+    if (Platform.OS === 'ios') {
+      return Boolean(googleClientIds.iosClientId);
+    }
+
+    return Boolean(googleClientIds.webClientId);
+  }, [googleClientIds.androidClientId, googleClientIds.iosClientId, googleClientIds.webClientId]);
+
+  const handleGoogleToken = async (idToken: string) => {
+    try {
+      const auth = await loginWithGoogle({ idToken }).unwrap();
+      await secureStorage.saveTokens(auth.accessToken, auth.refreshToken);
+      dispatch(setCredentials(auth));
+      setStatusMessage('Signed in with Google');
+    } catch {
+      setStatusMessage('Google login failed.');
+    }
+  };
 
   useEffect(() => {
     setStatusMessage(null);
@@ -261,15 +335,20 @@ export const LoginScreen = () => {
 
         {mode === 'google' ? (
           <View>
-            <Button
-              label="Continue with Google"
-              onPress={() => void promptAsync()}
-              disabled={!request}
-              isLoading={isGoogleLoading}
-            />
-            <AppText muted style={styles.note}>
-              Configure Google client IDs in frontend `.env` before production use.
-            </AppText>
+            {isGoogleConfigured ? (
+              <GoogleAuthCard
+                iosClientId={googleClientIds.iosClientId}
+                androidClientId={googleClientIds.androidClientId}
+                webClientId={googleClientIds.webClientId}
+                isLoading={isGoogleLoading}
+                onError={setStatusMessage}
+                onSuccess={handleGoogleToken}
+              />
+            ) : (
+              <AppText muted style={styles.note}>
+                Google login config missing. Add {missingGoogleEnvVar} in frontend `.env`.
+              </AppText>
+            )}
           </View>
         ) : null}
 
