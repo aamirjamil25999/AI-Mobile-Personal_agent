@@ -49,6 +49,9 @@ const hasGoogleConfig = Boolean(
   googleIosClientId || googleAndroidClientId || googleWebClientId
 );
 
+const normalizePhoneNumber = (value: string) => value.replace(/[^\d]/g, '').slice(0, 15);
+const normalizeOtp = (value: string) => value.replace(/[^\d]/g, '').slice(0, 6);
+
 export const LoginScreen = () => {
   const theme = useAppTheme();
   const dispatch = useAppDispatch();
@@ -165,31 +168,44 @@ export const LoginScreen = () => {
   });
 
   const handleSendOtp = async () => {
-    const parsed = phoneSchema.safeParse({ phoneNumber });
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    const parsed = phoneSchema.safeParse({ phoneNumber: normalizedPhone });
     if (!parsed.success) {
       setStatusMessage(parsed.error.issues[0]?.message ?? 'Enter a valid phone number.');
       return;
     }
 
     try {
-      await requestPhoneOtp({ phoneNumber }).unwrap();
+      const otpResponse = await requestPhoneOtp({
+        phoneNumber: normalizedPhone
+      }).unwrap();
       setOtpSent(true);
-      setOtp('');
-      setStatusMessage('OTP sent. Use backend log OTP for local testing.');
+      setPhoneNumber(normalizedPhone);
+      setOtp(otpResponse.otp ?? '');
+      setStatusMessage(
+        otpResponse.otp
+          ? `OTP sent. Dev OTP: ${otpResponse.otp}`
+          : 'OTP sent. Check your SMS provider delivery status.'
+      );
     } catch {
       setStatusMessage('Failed to send OTP.');
     }
   };
 
   const handleVerifyOtp = async () => {
-    const parsed = otpSchema.safeParse({ otp });
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    const normalizedOtp = normalizeOtp(otp);
+    const parsed = otpSchema.safeParse({ otp: normalizedOtp });
     if (!parsed.success) {
       setStatusMessage(parsed.error.issues[0]?.message ?? 'OTP must be 6 digits.');
       return;
     }
 
     try {
-      const auth = await verifyPhoneOtp({ phoneNumber, otp }).unwrap();
+      const auth = await verifyPhoneOtp({
+        phoneNumber: normalizedPhone,
+        otp: normalizedOtp
+      }).unwrap();
       dispatch(setCredentials(auth));
       setStatusMessage('Phone login successful');
     } catch {
@@ -382,7 +398,7 @@ export const LoginScreen = () => {
               placeholder="9876543210"
               keyboardType="phone-pad"
               value={phoneNumber}
-              onChangeText={setPhoneNumber}
+              onChangeText={(value) => setPhoneNumber(normalizePhoneNumber(value))}
             />
             {otpSent ? (
               <Input
@@ -390,7 +406,7 @@ export const LoginScreen = () => {
                 placeholder="6 digit OTP"
                 keyboardType="number-pad"
                 value={otp}
-                onChangeText={setOtp}
+                onChangeText={(value) => setOtp(normalizeOtp(value))}
               />
             ) : null}
             {!otpSent ? (

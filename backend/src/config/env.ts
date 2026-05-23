@@ -73,4 +73,8 @@ export class EnvService {
   get refreshCookieMaxAgeMs() {
     return Number(process.env.REFRESH_COOKIE_MAX_AGE_MS ?? 30 * 24 * 60 * 60 * 1000);
   }
+
+  get exposeDevOtp() {
+    return !this.isProduction && process.env.EXPOSE_DEV_OTP !== 'false';
+  }
 }

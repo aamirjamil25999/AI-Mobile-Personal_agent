@@ -18,6 +18,7 @@ type RefreshResponse = {
 
 type OtpResponse = {
   message: string;
+  otp?: string;
 };
 
 export const authApi = createApi({

@@ -113,7 +113,8 @@ export class AuthService {
     this.logger.log(`OTP for ${phoneNumber}: ${otp}`);
 
     return {
-      message: 'OTP sent successfully'
+      message: 'OTP sent successfully',
+      otp: this.env.exposeDevOtp ? otp : undefined
     };
   }
 

@@ -1,7 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
+import cookieParser = require('cookie-parser');
+import helmet = require('helmet');
 
 import { AppModule } from '@/app.module';
 import { EnvService } from '@/config/env';
@@ -13,7 +13,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.use(
-    helmet({
+    helmet.default({
       crossOriginResourcePolicy: false
     })
   );
