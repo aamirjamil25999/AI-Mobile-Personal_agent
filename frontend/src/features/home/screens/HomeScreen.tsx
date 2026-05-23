@@ -1,49 +1,23 @@
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/Text';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { QuickActionCard } from '@/features/home/components/QuickActionCard';
+import { QUICK_ACTIONS } from '@/features/home/types/home';
+import type { QuickActionId } from '@/features/home/types/home';
+import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-type QuickAction = {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-};
-
-const QUICK_ACTIONS: QuickAction[] = [
-  {
-    id: 'call',
-    title: 'Smart Call',
-    description: 'Call contact and summarize discussion.',
-    icon: '📞'
-  },
-  {
-    id: 'message',
-    title: 'Compose Message',
-    description: 'Draft and send message with context.',
-    icon: '💬'
-  },
-  {
-    id: 'email',
-    title: 'Write Email',
-    description: 'Generate and send a structured email.',
-    icon: '✉️'
-  },
-  {
-    id: 'settings',
-    title: 'Phone Settings',
-    description: 'Apply safe automation for device setup.',
-    icon: '⚙️'
-  }
-];
+type HomeNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export const HomeScreen = () => {
   const theme = useAppTheme();
+  const navigation = useNavigation<HomeNavigationProp>();
   const { user, logout } = useAuth();
   const [lastAction, setLastAction] = useState<string | null>(null);
 
@@ -62,6 +36,11 @@ export const HomeScreen = () => {
 
     return 'Agent User';
   }, [user]);
+
+  const handleActionPress = (actionId: QuickActionId, actionTitle: string) => {
+    setLastAction(actionTitle);
+    navigation.navigate('ActionCenter', { actionId });
+  };
 
   return (
     <ScreenContainer contentStyle={styles.container}>
@@ -91,7 +70,7 @@ export const HomeScreen = () => {
               description={action.description}
               icon={action.icon}
               onPress={() => {
-                setLastAction(action.title);
+                handleActionPress(action.id, action.title);
               }}
             />
           ))}
