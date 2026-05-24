@@ -10,6 +10,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { QuickActionCard } from '@/features/home/components/QuickActionCard';
 import { QUICK_ACTIONS } from '@/features/home/types/home';
 import type { QuickActionId } from '@/features/home/types/home';
+import { useGetExecutionHistoryQuery } from '@/features/workspace/api/workspaceApi';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -19,7 +20,30 @@ export const HomeScreen = () => {
   const theme = useAppTheme();
   const navigation = useNavigation<HomeNavigationProp>();
   const { user, logout } = useAuth();
+  const {
+    data: runs,
+    isFetching: isRefreshingActivity,
+    refetch
+  } = useGetExecutionHistoryQuery({
+    limit: 1
+  });
   const [lastAction, setLastAction] = useState<string | null>(null);
+
+  const latestRun = runs?.[0];
+  const latestActionTitle =
+    QUICK_ACTIONS.find((action) => action.id === latestRun?.actionId)?.title ?? latestRun?.actionId;
+  const latestRunText = latestRun
+    ? `Last execution: ${latestActionTitle} • ${new Date(latestRun.executedAt).toLocaleString(
+        'en-IN',
+        {
+          day: '2-digit',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }
+      )}`
+    : 'No execution history yet. Run your first action to build activity.';
 
   const greetingName = useMemo(() => {
     if (user?.fullName?.trim()) {
@@ -88,11 +112,18 @@ export const HomeScreen = () => {
         ]}
       >
         <AppText style={styles.activityTitle}>Activity</AppText>
+        <AppText muted>{latestRunText}</AppText>
         <AppText muted>
-          {lastAction
-            ? `Last selected action: ${lastAction}`
-            : 'No action selected yet. Choose one to continue.'}
+          {lastAction ? `Current selection: ${lastAction}` : 'No action selected in this session.'}
         </AppText>
+        <Button
+          label="Refresh Activity"
+          variant="ghost"
+          onPress={() => {
+            refetch();
+          }}
+          isLoading={isRefreshingActivity}
+        />
         <Button
           label="View Execution History"
           variant="ghost"
