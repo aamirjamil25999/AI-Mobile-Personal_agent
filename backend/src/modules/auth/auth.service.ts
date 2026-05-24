@@ -488,7 +488,10 @@ export class AuthService {
       throw new InternalServerErrorException('OTP provider is not configured');
     }
 
-    const formattedTo = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+    const normalizedDigits = phoneNumber.replace(/[^\d]/g, '');
+    const formattedTo = phoneNumber.startsWith('+')
+      ? `+${normalizedDigits}`
+      : `${this.env.otpDefaultCountryCode}${normalizedDigits}`;
     const params = new URLSearchParams({
       To: formattedTo,
       From: fromNumber,

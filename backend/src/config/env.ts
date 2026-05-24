@@ -96,6 +96,15 @@ export class EnvService {
     return process.env.TWILIO_FROM_NUMBER;
   }
 
+  get otpDefaultCountryCode() {
+    const raw = process.env.OTP_DEFAULT_COUNTRY_CODE?.trim();
+    if (!raw) {
+      return '+91';
+    }
+
+    return raw.startsWith('+') ? raw : `+${raw}`;
+  }
+
   get passwordResetExpiryMs() {
     return Number(process.env.PASSWORD_RESET_EXPIRY_MS ?? 30 * 60 * 1000);
   }

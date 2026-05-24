@@ -140,6 +140,7 @@ All endpoints are under `/api/workspace` (JWT required):
 - Invalid attempts are rate-limited.
 - For real SMS dispatch, set:
   - `OTP_PROVIDER=TWILIO`
+  - `OTP_DEFAULT_COUNTRY_CODE=+91` (or your country code)
   - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
 - Default mode is `OTP_PROVIDER=DEV_LOG`.
 
