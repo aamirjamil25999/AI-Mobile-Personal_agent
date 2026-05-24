@@ -1,6 +1,6 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -11,10 +11,7 @@ import { useGetExecutionQuery } from '@/features/workspace/api/workspaceApi';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-type RunDetailInsightsScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  'RunDetailInsights'
->;
+type RunDetailInsightsScreenProps = NativeStackScreenProps<RootStackParamList, 'RunDetailInsights'>;
 
 const VALID_ACTIONS: QuickActionId[] = ['call', 'message', 'email', 'settings'];
 
@@ -33,10 +30,7 @@ const formatTime = (value: string) =>
     minute: '2-digit'
   });
 
-export const RunDetailInsightsScreen = ({
-  navigation,
-  route
-}: RunDetailInsightsScreenProps) => {
+export const RunDetailInsightsScreen = ({ navigation, route }: RunDetailInsightsScreenProps) => {
   const theme = useAppTheme();
   const { data: run, isFetching } = useGetExecutionQuery(route.params.runId);
 
@@ -94,9 +88,7 @@ export const RunDetailInsightsScreen = ({
           }
         ]}
       >
-        <AppText style={styles.title}>
-          {action.icon} Run Insight
-        </AppText>
+        <AppText style={styles.title}>{action.icon} Run Insight</AppText>
         <AppText muted style={styles.metaText}>
           Run ID: {route.params.runId}
         </AppText>

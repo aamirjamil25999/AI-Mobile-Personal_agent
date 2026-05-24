@@ -1,6 +1,6 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -17,10 +17,7 @@ import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-type ProfileAccountScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  'ProfileAccount'
->;
+type ProfileAccountScreenProps = NativeStackScreenProps<RootStackParamList, 'ProfileAccount'>;
 
 const maskUserId = (value: string | undefined) => {
   if (!value) {
@@ -176,7 +173,7 @@ export const ProfileAccountScreen = ({ navigation }: ProfileAccountScreenProps) 
             fullWidth={false}
             style={styles.halfButton}
             onPress={() => {
-              void handleSaveProfile();
+              handleSaveProfile();
             }}
             isLoading={isSaving}
           />
@@ -186,7 +183,7 @@ export const ProfileAccountScreen = ({ navigation }: ProfileAccountScreenProps) 
             fullWidth={false}
             style={styles.halfButton}
             onPress={() => {
-              void refetch();
+              refetch();
             }}
             isLoading={isFetching}
           />
@@ -253,7 +250,7 @@ export const ProfileAccountScreen = ({ navigation }: ProfileAccountScreenProps) 
       <Button
         label="Logout"
         onPress={() => {
-          void logout();
+          logout();
         }}
       />
 

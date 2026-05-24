@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { StyleSheet, View } from 'react-native';
 import { z } from 'zod';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
@@ -13,10 +13,7 @@ import { useForgotPasswordMutation } from '@/features/auth/api/authApi';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-type ForgotPasswordScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  'ForgotPassword'
->;
+type ForgotPasswordScreenProps = NativeStackScreenProps<RootStackParamList, 'ForgotPassword'>;
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email')

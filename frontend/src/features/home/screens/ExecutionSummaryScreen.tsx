@@ -1,6 +1,6 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -9,15 +9,9 @@ import { getQuickActionById } from '@/features/home/types/home';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-type ExecutionSummaryScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  'ExecutionSummary'
->;
+type ExecutionSummaryScreenProps = NativeStackScreenProps<RootStackParamList, 'ExecutionSummary'>;
 
-export const ExecutionSummaryScreen = ({
-  navigation,
-  route
-}: ExecutionSummaryScreenProps) => {
+export const ExecutionSummaryScreen = ({ navigation, route }: ExecutionSummaryScreenProps) => {
   const theme = useAppTheme();
   const action = getQuickActionById(route.params.actionId);
   const totalSteps = 4;
@@ -53,7 +47,12 @@ export const ExecutionSummaryScreen = ({
       'No destructive system-level command detected.',
       'Next: apply changes in staged mode.'
     ];
-  }, [action.id, route.params.callStatus, route.params.targetContactName, route.params.targetPhoneNumber]);
+  }, [
+    action.id,
+    route.params.callStatus,
+    route.params.targetContactName,
+    route.params.targetPhoneNumber
+  ]);
 
   return (
     <ScreenContainer contentStyle={styles.container}>

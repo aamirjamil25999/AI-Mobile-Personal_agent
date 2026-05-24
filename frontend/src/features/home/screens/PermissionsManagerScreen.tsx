@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Linking, PermissionsAndroid, Platform, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Contacts from 'expo-contacts';
+import React, { useEffect, useState } from 'react';
+import { Linking, PermissionsAndroid, Platform, StyleSheet, View } from 'react-native';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -103,7 +103,7 @@ export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScree
   };
 
   useEffect(() => {
-    void refreshPermissions();
+    refreshPermissions();
     // Intentional: run once when screen opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -127,7 +127,11 @@ export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScree
   const requestCallPermission = async () => {
     if (Platform.OS !== 'android') {
       setCallStatus('unavailable');
-      await syncPermissions(contactsStatus, 'unavailable', 'Direct call permission Android-only hai.');
+      await syncPermissions(
+        contactsStatus,
+        'unavailable',
+        'Direct call permission Android-only hai.'
+      );
       return;
     }
 
@@ -198,7 +202,7 @@ export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScree
           label="Request Contacts Permission"
           variant="secondary"
           onPress={() => {
-            void requestContactsPermission();
+            requestContactsPermission();
           }}
         />
       </View>
@@ -222,7 +226,7 @@ export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScree
           label="Request Call Permission"
           variant="secondary"
           onPress={() => {
-            void requestCallPermission();
+            requestCallPermission();
           }}
           disabled={Platform.OS !== 'android'}
         />
@@ -235,7 +239,7 @@ export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScree
           fullWidth={false}
           style={styles.halfButton}
           onPress={() => {
-            void refreshPermissions();
+            refreshPermissions();
           }}
           isLoading={isFetching || isSaving}
         />
@@ -245,7 +249,7 @@ export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScree
           fullWidth={false}
           style={styles.halfButton}
           onPress={() => {
-            void Linking.openSettings();
+            Linking.openSettings();
           }}
         />
       </View>

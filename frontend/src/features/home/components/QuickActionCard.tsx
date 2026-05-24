@@ -11,12 +11,7 @@ type QuickActionCardProps = {
   onPress: () => void;
 };
 
-export const QuickActionCard = ({
-  title,
-  description,
-  icon,
-  onPress
-}: QuickActionCardProps) => {
+export const QuickActionCard = ({ title, description, icon, onPress }: QuickActionCardProps) => {
   const theme = useAppTheme();
 
   return (

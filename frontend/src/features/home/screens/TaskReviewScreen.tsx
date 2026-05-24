@@ -1,6 +1,6 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -76,9 +76,7 @@ export const TaskReviewScreen = ({ navigation, route }: TaskReviewScreenProps) =
         ]}
       >
         <AppText style={styles.title}>Task Review</AppText>
-        <AppText muted>
-          Validate plan before execution for {action.title.toLowerCase()}.
-        </AppText>
+        <AppText muted>Validate plan before execution for {action.title.toLowerCase()}.</AppText>
       </View>
 
       <View

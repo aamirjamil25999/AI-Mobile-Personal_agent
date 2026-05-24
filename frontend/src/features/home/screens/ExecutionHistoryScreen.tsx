@@ -1,21 +1,18 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/Text';
 import { getQuickActionById } from '@/features/home/types/home';
 import type { QuickActionId } from '@/features/home/types/home';
-import type { RootStackParamList } from '@/navigation/RootNavigator';
-import { useAppTheme } from '@/theme/useAppTheme';
 import { useGetExecutionHistoryQuery } from '@/features/workspace/api/workspaceApi';
 import type { ExecutionHistoryItem } from '@/features/workspace/types/workspace';
+import type { RootStackParamList } from '@/navigation/RootNavigator';
+import { useAppTheme } from '@/theme/useAppTheme';
 
-type ExecutionHistoryScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  'ExecutionHistory'
->;
+type ExecutionHistoryScreenProps = NativeStackScreenProps<RootStackParamList, 'ExecutionHistory'>;
 
 type FilterId = 'all' | QuickActionId;
 
@@ -201,7 +198,7 @@ export const ExecutionHistoryScreen = ({ navigation }: ExecutionHistoryScreenPro
           fullWidth={false}
           style={styles.halfButton}
           onPress={() => {
-            void refetch();
+            refetch();
           }}
           isLoading={isFetching}
         />

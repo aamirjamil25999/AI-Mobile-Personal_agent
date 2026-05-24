@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Linking, PermissionsAndroid, Platform, Pressable, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Contacts from 'expo-contacts';
 import * as IntentLauncher from 'expo-intent-launcher';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Linking, PermissionsAndroid, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -12,10 +12,7 @@ import { useCreateExecutionMutation } from '@/features/workspace/api/workspaceAp
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-type ExecutionStatusScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  'ExecutionStatus'
->;
+type ExecutionStatusScreenProps = NativeStackScreenProps<RootStackParamList, 'ExecutionStatus'>;
 
 type ExecutionStep = {
   id: string;
@@ -177,9 +174,7 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
 
       const allCandidates = extractContactCandidates(contactResult.data);
       const query = targetContactName.toLowerCase();
-      const exactMatches = allCandidates.filter((item) =>
-        item.name.toLowerCase().includes(query)
-      );
+      const exactMatches = allCandidates.filter((item) => item.name.toLowerCase().includes(query));
 
       const finalMatches = (exactMatches.length > 0 ? exactMatches : allCandidates).slice(0, 10);
       setContactMatches(finalMatches);
@@ -199,7 +194,7 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
   };
 
   useEffect(() => {
-    void findContactMatches();
+    findContactMatches();
     // We only want initial lookup for this screen load context.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -395,9 +390,7 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
                       styles.contactRow,
                       {
                         borderColor: isSelected ? theme.colors.primary : theme.colors.border,
-                        backgroundColor: isSelected
-                          ? theme.colors.surfaceAlt
-                          : theme.colors.surface
+                        backgroundColor: isSelected ? theme.colors.surfaceAlt : theme.colors.surface
                       }
                     ]}
                   >
@@ -421,7 +414,7 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
               fullWidth={false}
               style={styles.halfButton}
               onPress={() => {
-                void findContactMatches();
+                findContactMatches();
               }}
             />
             <Button
@@ -429,13 +422,17 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
               fullWidth={false}
               style={styles.halfButton}
               onPress={() => {
-                void handleInitiateCall();
+                handleInitiateCall();
               }}
               disabled={!dialNumber}
             />
           </View>
 
-          {callStatus ? <AppText muted style={styles.callStatus}>{callStatus}</AppText> : null}
+          {callStatus ? (
+            <AppText muted style={styles.callStatus}>
+              {callStatus}
+            </AppText>
+          ) : null}
         </View>
       ) : null}
 

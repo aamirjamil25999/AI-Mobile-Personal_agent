@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -116,7 +116,13 @@ export const HomeScreen = () => {
         />
       </View>
 
-      <Button label="Logout" variant="secondary" onPress={() => void logout()} />
+      <Button
+        label="Logout"
+        variant="secondary"
+        onPress={() => {
+          logout();
+        }}
+      />
     </ScreenContainer>
   );
 };

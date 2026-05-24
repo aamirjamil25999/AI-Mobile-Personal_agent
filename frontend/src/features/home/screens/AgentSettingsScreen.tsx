@@ -1,27 +1,27 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/Text';
-import type { RootStackParamList } from '@/navigation/RootNavigator';
-import { useAppTheme } from '@/theme/useAppTheme';
 import {
   useGetAgentSettingsQuery,
   useUpdateAgentSettingsMutation
 } from '@/features/workspace/api/workspaceApi';
 import type { AgentSettings } from '@/features/workspace/types/workspace';
+import type { RootStackParamList } from '@/navigation/RootNavigator';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 type AgentSettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'AgentSettings'>;
 
 type PluginKey = keyof AgentSettings['plugins'];
 
-const PLUGIN_CONFIG: Array<{
+const PLUGIN_CONFIG: {
   key: PluginKey;
   title: string;
   description: string;
-}> = [
+}[] = [
   {
     key: 'smartCall',
     title: 'Smart Call Engine',
@@ -63,7 +63,9 @@ const normalizeSettings = (value: Partial<AgentSettings> | undefined): AgentSett
     smartCall: Boolean(value?.plugins?.smartCall ?? defaultSettings.plugins.smartCall),
     messageDraft: Boolean(value?.plugins?.messageDraft ?? defaultSettings.plugins.messageDraft),
     emailComposer: Boolean(value?.plugins?.emailComposer ?? defaultSettings.plugins.emailComposer),
-    autoSummaryLogs: Boolean(value?.plugins?.autoSummaryLogs ?? defaultSettings.plugins.autoSummaryLogs)
+    autoSummaryLogs: Boolean(
+      value?.plugins?.autoSummaryLogs ?? defaultSettings.plugins.autoSummaryLogs
+    )
   },
   safety: {
     confirmSensitiveAction: Boolean(
@@ -126,7 +128,11 @@ export const AgentSettingsScreen = ({ navigation }: AgentSettingsScreenProps) =>
         description: 'Keep execution audit logs for compliance review.'
       }
     ],
-    [settings.safety.auditRetentionDays, settings.safety.confirmSensitiveAction, settings.safety.dailyAutomationLimit]
+    [
+      settings.safety.auditRetentionDays,
+      settings.safety.confirmSensitiveAction,
+      settings.safety.dailyAutomationLimit
+    ]
   );
 
   return (
@@ -231,7 +237,7 @@ export const AgentSettingsScreen = ({ navigation }: AgentSettingsScreenProps) =>
           fullWidth={false}
           style={styles.halfButton}
           onPress={() => {
-            void refetch();
+            refetch();
             setStatusMessage('Settings refreshed from server.');
           }}
           isLoading={isLoading}

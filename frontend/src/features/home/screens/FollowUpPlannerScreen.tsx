@@ -1,20 +1,17 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { AppText } from '@/components/ui/Text';
 import { getQuickActionById } from '@/features/home/types/home';
+import { useCreateFollowUpMutation } from '@/features/workspace/api/workspaceApi';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
-import { useCreateFollowUpMutation } from '@/features/workspace/api/workspaceApi';
 
-type FollowUpPlannerScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  'FollowUpPlanner'
->;
+type FollowUpPlannerScreenProps = NativeStackScreenProps<RootStackParamList, 'FollowUpPlanner'>;
 
 type FollowUpSlot = {
   id: string;

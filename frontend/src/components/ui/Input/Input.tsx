@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  StyleSheet,
-  TextInput,
-  View,
-  type TextInputProps,
-  type ViewStyle
-} from 'react-native';
+import { StyleSheet, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/theme/useAppTheme';

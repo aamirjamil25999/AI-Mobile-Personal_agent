@@ -1,20 +1,17 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/Text';
 import type { QuickActionId } from '@/features/home/types/home';
 import { getQuickActionById } from '@/features/home/types/home';
+import { useGetFollowUpTemplatesQuery } from '@/features/workspace/api/workspaceApi';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
-import { useGetFollowUpTemplatesQuery } from '@/features/workspace/api/workspaceApi';
 
-type FollowUpTemplatesScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  'FollowUpTemplates'
->;
+type FollowUpTemplatesScreenProps = NativeStackScreenProps<RootStackParamList, 'FollowUpTemplates'>;
 
 type TemplateChannel = 'notification' | 'message' | 'email';
 
@@ -121,10 +118,7 @@ const TEMPLATE_MAP: Record<QuickActionId, FollowUpTemplate[]> = {
   ]
 };
 
-export const FollowUpTemplatesScreen = ({
-  navigation,
-  route
-}: FollowUpTemplatesScreenProps) => {
+export const FollowUpTemplatesScreen = ({ navigation, route }: FollowUpTemplatesScreenProps) => {
   const theme = useAppTheme();
   const action = getQuickActionById(route.params.actionId);
   const { data: serverTemplates } = useGetFollowUpTemplatesQuery({

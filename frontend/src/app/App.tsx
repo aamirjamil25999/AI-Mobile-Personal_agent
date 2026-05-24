@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
 import { NavigationContainer, type Theme } from '@react-navigation/native';
+import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
 
-import { RootNavigator } from '@/navigation/RootNavigator';
 import { authApi } from '@/features/auth/api/authApi';
 import { clearSession, setAccessToken, setUser } from '@/features/auth/slices/authSlice';
+import { RootNavigator } from '@/navigation/RootNavigator';
 import { store } from '@/store';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { getTheme } from '@/theme';
@@ -32,7 +32,7 @@ const AppShell = () => {
       }
     };
 
-    void bootstrapSession();
+    bootstrapSession();
   }, [dispatch]);
 
   const appTheme = getTheme(mode);

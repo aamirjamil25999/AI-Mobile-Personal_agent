@@ -1,7 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import { API_BASE_URL, API_ENDPOINTS } from '@/constants/api';
-import type { RootState } from '@/store';
 import type {
   AgentSettings,
   CreateExecutionInput,
@@ -15,6 +14,7 @@ import type {
   WorkspaceProfileResponse,
   WorkspaceProfileUpdateResponse
 } from '@/features/workspace/types/workspace';
+import type { RootState } from '@/store';
 
 const appendQuery = (url: string, params?: Record<string, string | number | undefined>) => {
   if (!params) {
@@ -130,15 +130,17 @@ export const workspaceApi = createApi({
         method: 'GET'
       })
     }),
-    getFollowUpInbox: builder.query<FollowUpItem[], { status?: 'all' | 'pending' | 'done' } | void>({
-      query: (params) => ({
-        url: appendQuery(API_ENDPOINTS.workspace.followUpInbox, {
-          status: params?.status
+    getFollowUpInbox: builder.query<FollowUpItem[], { status?: 'all' | 'pending' | 'done' } | void>(
+      {
+        query: (params) => ({
+          url: appendQuery(API_ENDPOINTS.workspace.followUpInbox, {
+            status: params?.status
+          }),
+          method: 'GET'
         }),
-        method: 'GET'
-      }),
-      providesTags: ['FollowUpInbox']
-    }),
+        providesTags: ['FollowUpInbox']
+      }
+    ),
     createFollowUp: builder.mutation<FollowUpItem, CreateFollowUpInput>({
       query: (body) => ({
         url: API_ENDPOINTS.workspace.followUps,

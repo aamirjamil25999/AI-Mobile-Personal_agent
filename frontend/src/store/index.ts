@@ -1,9 +1,9 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 
 import { authApi } from '@/features/auth/api/authApi';
-import { workspaceApi } from '@/features/workspace/api/workspaceApi';
 import authReducer from '@/features/auth/slices/authSlice';
 import themeReducer from '@/features/theme/slices/themeSlice';
+import { workspaceApi } from '@/features/workspace/api/workspaceApi';
 
 const rootReducer = combineReducers({
   auth: authReducer,

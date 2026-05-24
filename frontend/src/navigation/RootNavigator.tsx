@@ -1,25 +1,25 @@
-import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React from 'react';
 
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { ForgotPasswordScreen } from '@/features/auth/screens/ForgotPasswordScreen';
 import { LoginScreen } from '@/features/auth/screens/LoginScreen';
 import { SignupScreen } from '@/features/auth/screens/SignupScreen';
-import { ForgotPasswordScreen } from '@/features/auth/screens/ForgotPasswordScreen';
-import type { QuickActionId } from '@/features/home/types/home';
-import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ActionCenterScreen } from '@/features/home/screens/ActionCenterScreen';
 import { AgentSettingsScreen } from '@/features/home/screens/AgentSettingsScreen';
 import { ExecutionAuditScreen } from '@/features/home/screens/ExecutionAuditScreen';
 import { ExecutionHistoryScreen } from '@/features/home/screens/ExecutionHistoryScreen';
-import { RunDetailInsightsScreen } from '@/features/home/screens/RunDetailInsightsScreen';
-import { FollowUpPlannerScreen } from '@/features/home/screens/FollowUpPlannerScreen';
-import { FollowUpTemplatesScreen } from '@/features/home/screens/FollowUpTemplatesScreen';
 import { ExecutionStatusScreen } from '@/features/home/screens/ExecutionStatusScreen';
 import { ExecutionSummaryScreen } from '@/features/home/screens/ExecutionSummaryScreen';
+import { FollowUpPlannerScreen } from '@/features/home/screens/FollowUpPlannerScreen';
+import { FollowUpTemplatesScreen } from '@/features/home/screens/FollowUpTemplatesScreen';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
 import { NotificationsInboxScreen } from '@/features/home/screens/NotificationsInboxScreen';
 import { PermissionsManagerScreen } from '@/features/home/screens/PermissionsManagerScreen';
 import { ProfileAccountScreen } from '@/features/home/screens/ProfileAccountScreen';
+import { RunDetailInsightsScreen } from '@/features/home/screens/RunDetailInsightsScreen';
 import { TaskReviewScreen } from '@/features/home/screens/TaskReviewScreen';
+import type { QuickActionId } from '@/features/home/types/home';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 export type RootStackParamList = {
@@ -115,11 +115,7 @@ export const RootNavigator = () => {
     >
       {isAuthenticated ? (
         <>
-          <Stack.Screen
-            name="Home"
-            component={HomeScreen}
-            options={{ title: 'My Phone Agent' }}
-          />
+          <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'My Phone Agent' }} />
           <Stack.Screen
             name="ProfileAccount"
             component={ProfileAccountScreen}

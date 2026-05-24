@@ -1,6 +1,6 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -10,10 +10,7 @@ import { useGetExecutionAuditsQuery } from '@/features/workspace/api/workspaceAp
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-type ExecutionAuditScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  'ExecutionAudit'
->;
+type ExecutionAuditScreenProps = NativeStackScreenProps<RootStackParamList, 'ExecutionAudit'>;
 
 type AuditEvent = {
   id: string;
@@ -179,7 +176,7 @@ export const ExecutionAuditScreen = ({ navigation, route }: ExecutionAuditScreen
         label="Refresh Audit"
         variant="ghost"
         onPress={() => {
-          void refetch();
+          refetch();
         }}
         isLoading={isFetching}
       />

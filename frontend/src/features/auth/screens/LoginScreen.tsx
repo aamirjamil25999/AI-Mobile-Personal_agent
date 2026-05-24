@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { StyleSheet, View } from 'react-native';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -20,16 +20,11 @@ import {
 } from '@/features/auth/api/authApi';
 import { setCredentials } from '@/features/auth/slices/authSlice';
 import type { EmailLoginInput, EmailSignupInput } from '@/features/auth/types/auth';
-import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { toggleThemeMode } from '@/features/theme/slices/themeSlice';
+import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppDispatch } from '@/store/hooks';
 import { useAppTheme } from '@/theme/useAppTheme';
-import {
-  emailLoginSchema,
-  emailSignupSchema,
-  otpSchema,
-  phoneSchema
-} from '@/utils/validators';
+import { emailLoginSchema, emailSignupSchema, otpSchema, phoneSchema } from '@/utils/validators';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -48,9 +43,7 @@ const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
-const hasGoogleConfig = Boolean(
-  googleIosClientId || googleAndroidClientId || googleWebClientId
-);
+const hasGoogleConfig = Boolean(googleIosClientId || googleAndroidClientId || googleWebClientId);
 
 const normalizePhoneNumber = (value: string) => value.replace(/[^\d]/g, '').slice(0, 15);
 const normalizeOtp = (value: string) => value.replace(/[^\d]/g, '').slice(0, 6);
@@ -68,10 +61,8 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
 
   const [signupWithEmail, { isLoading: isSignupLoading }] = useSignupWithEmailMutation();
   const [loginWithEmail, { isLoading: isEmailLoading }] = useLoginWithEmailMutation();
-  const [requestPhoneOtp, { isLoading: isPhoneRequestLoading }] =
-    useRequestPhoneOtpMutation();
-  const [verifyPhoneOtp, { isLoading: isPhoneVerifyLoading }] =
-    useVerifyPhoneOtpMutation();
+  const [requestPhoneOtp, { isLoading: isPhoneRequestLoading }] = useRequestPhoneOtpMutation();
+  const [verifyPhoneOtp, { isLoading: isPhoneVerifyLoading }] = useVerifyPhoneOtpMutation();
   const [loginWithGoogle, { isLoading: isGoogleLoading }] = useLoginWithGoogleMutation();
 
   const {
@@ -130,7 +121,7 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
       }
     };
 
-    void completeGoogleSignIn();
+    completeGoogleSignIn();
   }, [dispatch, loginWithGoogle, response]);
 
   useEffect(() => {
@@ -447,7 +438,7 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
           <View>
             <Button
               label={hasGoogleConfig ? 'Continue with Google' : 'Google Not Configured'}
-              onPress={() => void handleGooglePress()}
+              onPress={handleGooglePress}
               isLoading={isGoogleLoading}
               disabled={!hasGoogleConfig}
             />
@@ -467,7 +458,9 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
         />
 
         {statusMessage ? (
-          <AppText style={[styles.status, { color: theme.colors.textMuted }]}>{statusMessage}</AppText>
+          <AppText style={[styles.status, { color: theme.colors.textMuted }]}>
+            {statusMessage}
+          </AppText>
         ) : null}
       </View>
     </ScreenContainer>

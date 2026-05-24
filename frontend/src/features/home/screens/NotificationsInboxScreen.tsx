@@ -1,20 +1,20 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/Text';
 import { getQuickActionById } from '@/features/home/types/home';
 import type { QuickActionId } from '@/features/home/types/home';
-import type { RootStackParamList } from '@/navigation/RootNavigator';
-import { useAppTheme } from '@/theme/useAppTheme';
 import {
   useGetFollowUpInboxQuery,
   useSnoozeFollowUpMutation,
   useUpdateFollowUpStatusMutation
 } from '@/features/workspace/api/workspaceApi';
 import type { FollowUpItem } from '@/features/workspace/types/workspace';
+import type { RootStackParamList } from '@/navigation/RootNavigator';
+import { useAppTheme } from '@/theme/useAppTheme';
 
 type NotificationsInboxScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -99,7 +99,11 @@ export const NotificationsInboxScreen = ({ navigation }: NotificationsInboxScree
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
   const [status, setStatus] = useState<string | null>(null);
 
-  const { data: inboxItems, isFetching, refetch } = useGetFollowUpInboxQuery({
+  const {
+    data: inboxItems,
+    isFetching,
+    refetch
+  } = useGetFollowUpInboxQuery({
     status: activeFilter
   });
   const [updateFollowUpStatus, { isLoading: isUpdatingStatus }] = useUpdateFollowUpStatusMutation();
@@ -277,7 +281,7 @@ export const NotificationsInboxScreen = ({ navigation }: NotificationsInboxScree
           fullWidth={false}
           style={styles.halfButton}
           onPress={() => {
-            void refetch();
+            refetch();
           }}
           isLoading={isFetching}
         />

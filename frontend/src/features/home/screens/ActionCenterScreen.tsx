@@ -1,6 +1,6 @@
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
@@ -10,10 +10,7 @@ import { getQuickActionById } from '@/features/home/types/home';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-type ActionCenterScreenProps = NativeStackScreenProps<
-  RootStackParamList,
-  'ActionCenter'
->;
+type ActionCenterScreenProps = NativeStackScreenProps<RootStackParamList, 'ActionCenter'>;
 
 const DEFAULT_PROMPTS: Record<string, string> = {
   call: 'Call Aman and ask if tomorrow meeting can be moved to 11 AM. Then summarize in 3 bullet points.',
@@ -21,8 +18,7 @@ const DEFAULT_PROMPTS: Record<string, string> = {
     'Send a polite reminder to the design team: please share final app icons before 5 PM today.',
   email:
     'Draft an email to hr@company.com requesting leave for Monday with concise reason and handover note.',
-  settings:
-    'Enable battery saver at 20%, keep Wi-Fi ON, and reduce screen brightness to 35%.'
+  settings: 'Enable battery saver at 20%, keep Wi-Fi ON, and reduce screen brightness to 35%.'
 };
 
 const normalizePhoneNumber = (value: string) => value.replace(/[^\d]/g, '').slice(0, 15);
@@ -140,7 +136,8 @@ export const ActionCenterScreen = ({ navigation, route }: ActionCenterScreenProp
               prompt: prompt.trim(),
               targetContactName:
                 action.id === 'call' && trimmedContactName ? trimmedContactName : undefined,
-              targetPhoneNumber: action.id === 'call' && hasValidPhoneNumber ? phoneNumber : undefined
+              targetPhoneNumber:
+                action.id === 'call' && hasValidPhoneNumber ? phoneNumber : undefined
             });
           }}
         />

@@ -89,5 +89,4 @@ const lightTheme: AppTheme = {
   radius: baseRadius
 };
 
-export const getTheme = (mode: ThemeMode): AppTheme =>
-  mode === 'dark' ? darkTheme : lightTheme;
+export const getTheme = (mode: ThemeMode): AppTheme => (mode === 'dark' ? darkTheme : lightTheme);

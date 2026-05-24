@@ -1,6 +1,6 @@
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { clearSession } from '@/features/auth/slices/authSlice';
 import { authApi } from '@/features/auth/api/authApi';
+import { clearSession } from '@/features/auth/slices/authSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();

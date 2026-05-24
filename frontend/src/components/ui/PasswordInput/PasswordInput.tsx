@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
+import { AppText } from '@/components/ui/Text';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 type PasswordInputProps = {

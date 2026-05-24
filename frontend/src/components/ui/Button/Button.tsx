@@ -52,18 +52,16 @@ export const Button = ({
   };
 
   const labelColor =
-    variant === 'primary' || variant === 'danger'
-      ? theme.colors.primaryText
-      : theme.colors.text;
+    variant === 'primary' || variant === 'danger' ? theme.colors.primaryText : theme.colors.text;
 
   return (
     <Pressable
-      disabled={disabled || isLoading}
+      disabled={Boolean(disabled) || isLoading}
       style={({ pressed }) => [
         styles.button,
         {
           width: fullWidth ? '100%' : undefined,
-          opacity: pressed || disabled ? 0.8 : 1,
+          opacity: pressed || Boolean(disabled) ? 0.8 : 1,
           borderRadius: theme.radius.md
         },
         variantStyles[variant],

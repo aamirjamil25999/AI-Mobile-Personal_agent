@@ -12,11 +12,7 @@ export const AppText = ({ muted = false, style, ...rest }: AppTextProps) => {
 
   return (
     <RNText
-      style={[
-        styles.text,
-        { color: muted ? theme.colors.textMuted : theme.colors.text },
-        style
-      ]}
+      style={[styles.text, { color: muted ? theme.colors.textMuted : theme.colors.text }, style]}
       {...rest}
     />
   );
