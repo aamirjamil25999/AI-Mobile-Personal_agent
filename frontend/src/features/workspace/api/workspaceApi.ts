@@ -1,6 +1,8 @@
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import { API_BASE_URL, API_ENDPOINTS } from '@/constants/api';
+import { clearSession, setAccessToken } from '@/features/auth/slices/authSlice';
 import type {
   AgentSettings,
   CreateExecutionInput,
@@ -31,20 +33,56 @@ const appendQuery = (url: string, params?: Record<string, string | number | unde
   return query ? `${url}?${query}` : url;
 };
 
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: API_BASE_URL,
+  credentials: 'include',
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.accessToken;
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    headers.set('Content-Type', 'application/json');
+    return headers;
+  }
+});
+
+const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+  args,
+  api,
+  extraOptions
+) => {
+  let result = await rawBaseQuery(args, api, extraOptions);
+
+  if (result.error?.status === 401) {
+    const refreshResult = await rawBaseQuery(
+      {
+        url: API_ENDPOINTS.auth.refresh,
+        method: 'POST'
+      },
+      api,
+      extraOptions
+    );
+
+    if (refreshResult.data && typeof refreshResult.data === 'object') {
+      const accessToken = (refreshResult.data as { accessToken?: string }).accessToken;
+
+      if (typeof accessToken === 'string' && accessToken.length > 0) {
+        api.dispatch(setAccessToken({ accessToken }));
+        result = await rawBaseQuery(args, api, extraOptions);
+      } else {
+        api.dispatch(clearSession());
+      }
+    } else {
+      api.dispatch(clearSession());
+    }
+  }
+
+  return result;
+};
+
 export const workspaceApi = createApi({
   reducerPath: 'workspaceApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_BASE_URL,
-    credentials: 'include',
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.accessToken;
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-      headers.set('Content-Type', 'application/json');
-      return headers;
-    }
-  }),
+  baseQuery: baseQueryWithReauth,
   tagTypes: ['Profile', 'Permissions', 'AgentSettings', 'ExecutionHistory', 'FollowUpInbox'],
   endpoints: (builder) => ({
     getProfile: builder.query<WorkspaceProfileResponse, void>({

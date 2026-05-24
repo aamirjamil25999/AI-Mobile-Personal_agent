@@ -67,10 +67,25 @@ export class AuthService {
 
   async loginWithEmail(dto: EmailLoginDto) {
     const normalizedEmail = dto.email.toLowerCase().trim();
-    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+    let user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      if (!this.env.devAutoCreateEmailUser) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
+
+      const passwordHash = await bcrypt.hash(dto.password, 12);
+      user = await this.prisma.user.create({
+        data: {
+          email: normalizedEmail,
+          passwordHash,
+          provider: AuthProvider.EMAIL,
+          fullName: normalizedEmail.split('@')[0]
+        }
+      });
+
+      this.logger.log(`Auto-created development email user: ${normalizedEmail}`);
+      return this.issueAuthResponse(user);
     }
 
     if (!user.passwordHash) {

@@ -1,6 +1,8 @@
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import { API_BASE_URL, API_ENDPOINTS } from '@/constants/api';
+import { clearSession, setAccessToken } from '@/features/auth/slices/authSlice';
 import type {
   AuthResponse,
   EmailLoginInput,
@@ -24,20 +26,59 @@ type OtpResponse = {
   otp?: string;
 };
 
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: API_BASE_URL,
+  credentials: 'include',
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.accessToken;
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    headers.set('Content-Type', 'application/json');
+    return headers;
+  }
+});
+
+const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+  args,
+  api,
+  extraOptions
+) => {
+  let result = await rawBaseQuery(args, api, extraOptions);
+
+  const requestUrl = typeof args === 'string' ? args : args.url;
+  const isRefreshRequest = requestUrl === API_ENDPOINTS.auth.refresh;
+
+  if (result.error?.status === 401 && !isRefreshRequest) {
+    const refreshResult = await rawBaseQuery(
+      {
+        url: API_ENDPOINTS.auth.refresh,
+        method: 'POST'
+      },
+      api,
+      extraOptions
+    );
+
+    if (refreshResult.data && typeof refreshResult.data === 'object') {
+      const accessToken = (refreshResult.data as RefreshResponse).accessToken;
+
+      if (typeof accessToken === 'string' && accessToken.length > 0) {
+        api.dispatch(setAccessToken({ accessToken }));
+        result = await rawBaseQuery(args, api, extraOptions);
+      } else {
+        api.dispatch(clearSession());
+      }
+    } else {
+      api.dispatch(clearSession());
+    }
+  }
+
+  return result;
+};
+
 export const authApi = createApi({
   reducerPath: 'authApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_BASE_URL,
-    credentials: 'include',
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.accessToken;
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-      headers.set('Content-Type', 'application/json');
-      return headers;
-    }
-  }),
+  baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
     signupWithEmail: builder.mutation<AuthResponse, EmailSignupInput>({
       query: (body) => ({

@@ -125,4 +125,8 @@ export class EnvService {
   get passwordResetExpiryMs() {
     return Number(process.env.PASSWORD_RESET_EXPIRY_MS ?? 30 * 60 * 1000);
   }
+
+  get devAutoCreateEmailUser() {
+    return !this.isProduction && process.env.DEV_AUTO_CREATE_EMAIL_USER === 'true';
+  }
 }

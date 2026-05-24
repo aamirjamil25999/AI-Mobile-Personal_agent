@@ -26,6 +26,14 @@ type ContactCandidate = {
   number: string;
 };
 
+type ApiErrorLike = {
+  status?: number | string;
+  data?: {
+    message?: string | string[];
+    error?: string;
+  };
+};
+
 const EXECUTION_STEPS: ExecutionStep[] = [
   {
     id: 'queued',
@@ -72,6 +80,34 @@ const extractContactCandidates = (contacts: Contacts.Contact[]) => {
   });
 
   return candidates;
+};
+
+const extractApiErrorMessage = (error: unknown) => {
+  const fallback = 'LLM execution failed. Backend/Ollama check karke phir try karo.';
+
+  if (!error || typeof error !== 'object') {
+    return fallback;
+  }
+
+  const maybeError = error as ApiErrorLike;
+  const status = maybeError.status;
+
+  if (status === 401) {
+    return 'Session expired ho gaya. Please login again.';
+  }
+
+  if (status === 'FETCH_ERROR') {
+    return 'Backend server reachable nahi hai. Network/API URL check karo.';
+  }
+
+  const rawMessage = maybeError.data?.message;
+  const message = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
+
+  if (typeof message === 'string' && message.trim()) {
+    return message;
+  }
+
+  return fallback;
 };
 
 export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScreenProps) => {
@@ -240,8 +276,8 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
         targetPhoneNumber: dialNumber ?? undefined,
         callStatus: run.callStatus ?? callStatus ?? undefined
       });
-    } catch {
-      setExecutionStatus('LLM execution failed. Backend/Ollama check karke phir try karo.');
+    } catch (error) {
+      setExecutionStatus(extractApiErrorMessage(error));
     }
   };
 
