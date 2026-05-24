@@ -16,6 +16,7 @@ import { FollowUpTemplatesScreen } from '@/features/home/screens/FollowUpTemplat
 import { ExecutionStatusScreen } from '@/features/home/screens/ExecutionStatusScreen';
 import { ExecutionSummaryScreen } from '@/features/home/screens/ExecutionSummaryScreen';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
+import { NotificationsInboxScreen } from '@/features/home/screens/NotificationsInboxScreen';
 import { PermissionsManagerScreen } from '@/features/home/screens/PermissionsManagerScreen';
 import { ProfileAccountScreen } from '@/features/home/screens/ProfileAccountScreen';
 import { TaskReviewScreen } from '@/features/home/screens/TaskReviewScreen';
@@ -29,6 +30,7 @@ export type RootStackParamList = {
   ProfileAccount: undefined;
   PermissionsManager: undefined;
   AgentSettings: undefined;
+  NotificationsInbox: undefined;
   ActionCenter: {
     actionId: QuickActionId;
   };
@@ -129,6 +131,11 @@ export const RootNavigator = () => {
             name="AgentSettings"
             component={AgentSettingsScreen}
             options={{ title: 'Agent Settings & Plugins' }}
+          />
+          <Stack.Screen
+            name="NotificationsInbox"
+            component={NotificationsInboxScreen}
+            options={{ title: 'Notifications & Follow-up Inbox' }}
           />
           <Stack.Screen
             name="ActionCenter"

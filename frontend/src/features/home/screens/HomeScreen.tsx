@@ -107,6 +107,13 @@ export const HomeScreen = () => {
             navigation.navigate('ProfileAccount');
           }}
         />
+        <Button
+          label="Open Follow-up Inbox"
+          variant="ghost"
+          onPress={() => {
+            navigation.navigate('NotificationsInbox');
+          }}
+        />
       </View>
 
       <Button label="Logout" variant="secondary" onPress={() => void logout()} />

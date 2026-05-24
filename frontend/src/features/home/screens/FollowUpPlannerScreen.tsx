@@ -251,6 +251,14 @@ export const FollowUpPlannerScreen = ({ navigation, route }: FollowUpPlannerScre
           }}
         />
       </View>
+
+      <Button
+        label="Open Follow-up Inbox"
+        variant="ghost"
+        onPress={() => {
+          navigation.navigate('NotificationsInbox');
+        }}
+      />
     </ScreenContainer>
   );
 };
