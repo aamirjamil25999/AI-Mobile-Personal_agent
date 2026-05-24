@@ -8,6 +8,7 @@ Current auth methods implemented:
 - Email + Password
 - Phone Number + OTP
 - Google ID Token
+- Forgot Password + Reset Password
 
 ## 1) Project Structure
 
@@ -31,9 +32,11 @@ Current auth methods implemented:
 │       ├── modules/
 │       │   ├── auth/
 │       │   ├── health/
-│       │   └── users/
+│       │   ├── users/
+│       │   └── workspace/
 │       ├── config/
 │       └── database/
+├── docker-compose.yml
 └── README.md
 ```
 
@@ -41,9 +44,9 @@ Current auth methods implemented:
 
 1. Create environment file:
    - copy `backend/.env.example` -> `backend/.env`
-2. Start PostgreSQL and ensure `DATABASE_URL` points to it.
+2. Start PostgreSQL (Docker-based local setup).
 3. Install dependencies and generate Prisma client.
-4. Run migration.
+4. Apply migrations.
 5. Start backend in dev mode.
 
 Commands:
@@ -51,9 +54,19 @@ Commands:
 ```bash
 cd backend
 npm install
+npm run db:up
 npm run prisma:generate
-npm run prisma:migrate -- --name init_auth
+npm run prisma:migrate:deploy
 npm run start:dev
+```
+
+Useful DB commands:
+
+```bash
+cd backend
+npm run db:logs
+npm run prisma:status
+npm run db:down
 ```
 
 Backend base URL:
@@ -80,20 +93,41 @@ npm run start
 Local API URL notes:
 - iOS simulator: `http://localhost:3000/api`
 - Android emulator default fallback: `http://10.0.2.2:3000/api`
+- Physical Android device: `http://<YOUR_LOCAL_IP>:3000/api`
 
 ## 4) Auth API Endpoints
 
 All endpoints are under `/api/auth`:
 
+- `POST /email/signup`
 - `POST /email/login`
 - `POST /phone/request-otp`
 - `POST /phone/verify-otp`
 - `POST /google`
+- `POST /password/forgot`
+- `POST /password/reset`
 - `POST /refresh`
 - `POST /logout`
 - `GET /me` (Bearer token required)
 
-## 5) Local Testing Notes
+## 5) Workspace API Endpoints
+
+All endpoints are under `/api/workspace` (JWT required):
+
+- `GET/PATCH /profile`
+- `GET/PUT /permissions`
+- `GET/PUT /agent-settings`
+- `GET /executions/history`
+- `POST /executions`
+- `GET /executions/:runId`
+- `GET /executions/:runId/audits`
+- `GET /followups/templates`
+- `GET /followups/inbox`
+- `POST /followups`
+- `PATCH /followups/:followUpId/status`
+- `PATCH /followups/:followUpId/snooze`
+
+## 6) Local Testing Notes
 
 ### Email login
 - With `DEV_AUTO_CREATE_EMAIL_USER=true` in backend `.env`, first login auto-creates user.
@@ -109,7 +143,7 @@ All endpoints are under `/api/auth`:
 - For local backend-only testing, you can use a dev token format:
   - `dev-google-token:user@example.com`
 
-## 6) Code Quality Scripts
+## 7) Code Quality Scripts
 
 Backend:
 
@@ -127,10 +161,8 @@ npm run typecheck
 npm run lint
 ```
 
-## 7) Next Build Steps
+## 8) Current Status
 
-- Add signup + forgot password flows.
-- Add SMS provider integration (Twilio/MSG91) instead of log-based OTP.
-- Add refresh token device binding + rotation policy.
-- Add biometrics unlock on app open.
-- Add E2E tests for auth journeys.
+- Authentication flows ready (email, phone OTP, google, forgot/reset password).
+- Workspace backend + related app screens connected (profile, permissions, execution, follow-ups).
+- OTP is still development-mode (real SMS provider integration pending).

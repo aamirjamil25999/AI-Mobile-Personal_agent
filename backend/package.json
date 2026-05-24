@@ -8,8 +8,13 @@
     "build": "nest build && tsc-alias -p tsconfig.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
+    "db:up": "docker compose -f ../docker-compose.yml up -d postgres",
+    "db:down": "docker compose -f ../docker-compose.yml down",
+    "db:logs": "docker compose -f ../docker-compose.yml logs -f postgres",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:status": "prisma migrate status",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
