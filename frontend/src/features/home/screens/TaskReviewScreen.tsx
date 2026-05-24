@@ -1,11 +1,14 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/Text';
 import { getQuickActionById } from '@/features/home/types/home';
+import type { QuickActionId } from '@/features/home/types/home';
+import { useGetAgentSettingsQuery } from '@/features/workspace/api/workspaceApi';
+import type { AgentPlugins } from '@/features/workspace/types/workspace';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -31,17 +34,61 @@ const SAFETY_ITEMS: SafetyItem[] = [
   }
 ];
 
+const ACTION_PLUGIN_KEY_MAP: Record<QuickActionId, keyof AgentPlugins | null> = {
+  call: 'smartCall',
+  message: 'messageDraft',
+  email: 'emailComposer',
+  settings: null
+};
+
 export const TaskReviewScreen = ({ navigation, route }: TaskReviewScreenProps) => {
   const theme = useAppTheme();
   const action = getQuickActionById(route.params.actionId);
+  const { data: agentSettings, isFetching: isLoadingSettings } = useGetAgentSettingsQuery();
+  const [policyInitialized, setPolicyInitialized] = useState(false);
 
   const [selectedSafety, setSelectedSafety] = useState<string[]>(
     SAFETY_ITEMS.map((item) => item.id)
   );
 
-  const isPlanReady = selectedSafety.length >= 2;
+  const requiredPluginKey = ACTION_PLUGIN_KEY_MAP[action.id];
+  const isRequiredPluginEnabled = requiredPluginKey
+    ? (agentSettings?.plugins?.[requiredPluginKey] ?? true)
+    : true;
+
+  useEffect(() => {
+    if (!agentSettings || policyInitialized) {
+      return;
+    }
+
+    setSelectedSafety((previous) => {
+      const next = new Set(previous);
+
+      if (agentSettings.safety.confirmSensitiveAction) {
+        next.add('confirmation');
+      } else {
+        next.delete('confirmation');
+      }
+
+      if (agentSettings.plugins.autoSummaryLogs) {
+        next.add('logging');
+      } else {
+        next.delete('logging');
+      }
+
+      next.add('limit');
+      return Array.from(next);
+    });
+    setPolicyInitialized(true);
+  }, [agentSettings, policyInitialized]);
+
+  const isPlanReady = selectedSafety.length >= 2 && isRequiredPluginEnabled;
 
   const safetySummary = useMemo(() => {
+    if (!isRequiredPluginEnabled) {
+      return 'Required plugin is currently disabled. Enable it in Agent Settings.';
+    }
+
     if (selectedSafety.length === SAFETY_ITEMS.length) {
       return 'All safety checks active.';
     }
@@ -51,7 +98,7 @@ export const TaskReviewScreen = ({ navigation, route }: TaskReviewScreenProps) =
     }
 
     return `${selectedSafety.length} safety checks active.`;
-  }, [selectedSafety]);
+  }, [isRequiredPluginEnabled, selectedSafety.length]);
 
   const toggleSafety = (itemId: string) => {
     setSelectedSafety((prev) => {
@@ -143,7 +190,27 @@ export const TaskReviewScreen = ({ navigation, route }: TaskReviewScreenProps) =
         <AppText muted style={styles.summaryText}>
           {safetySummary}
         </AppText>
+        {agentSettings ? (
+          <>
+            <AppText muted style={styles.summaryText}>
+              Daily automation limit: {agentSettings.safety.dailyAutomationLimit}
+            </AppText>
+            <AppText muted style={styles.summaryText}>
+              Audit retention: {agentSettings.safety.auditRetentionDays} days
+            </AppText>
+          </>
+        ) : null}
       </View>
+
+      {!isRequiredPluginEnabled ? (
+        <Button
+          label="Open Agent Settings"
+          variant="ghost"
+          onPress={() => {
+            navigation.navigate('AgentSettings');
+          }}
+        />
+      ) : null}
 
       <Button
         label="Approve And Continue"
@@ -161,6 +228,7 @@ export const TaskReviewScreen = ({ navigation, route }: TaskReviewScreenProps) =
           });
         }}
         disabled={!isPlanReady}
+        isLoading={isLoadingSettings}
       />
 
       <Button label="Back" variant="secondary" onPress={() => navigation.goBack()} />
