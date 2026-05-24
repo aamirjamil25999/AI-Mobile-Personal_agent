@@ -158,6 +158,13 @@ export const ExecutionAuditScreen = ({ navigation, route }: ExecutionAuditScreen
         }}
       />
       <Button
+        label="Open History"
+        variant="ghost"
+        onPress={() => {
+          navigation.navigate('ExecutionHistory');
+        }}
+      />
+      <Button
         label="Back To Home"
         onPress={() => {
           navigation.popToTop();

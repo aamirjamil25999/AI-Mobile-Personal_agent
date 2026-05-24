@@ -6,6 +6,7 @@ import type { QuickActionId } from '@/features/home/types/home';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ActionCenterScreen } from '@/features/home/screens/ActionCenterScreen';
 import { ExecutionAuditScreen } from '@/features/home/screens/ExecutionAuditScreen';
+import { ExecutionHistoryScreen } from '@/features/home/screens/ExecutionHistoryScreen';
 import { ExecutionStatusScreen } from '@/features/home/screens/ExecutionStatusScreen';
 import { ExecutionSummaryScreen } from '@/features/home/screens/ExecutionSummaryScreen';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
@@ -49,6 +50,7 @@ export type RootStackParamList = {
     callStatus?: string;
     executedAt: string;
   };
+  ExecutionHistory: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -96,6 +98,11 @@ export const RootNavigator = () => {
             name="ExecutionAudit"
             component={ExecutionAuditScreen}
             options={{ title: 'Execution Audit Log' }}
+          />
+          <Stack.Screen
+            name="ExecutionHistory"
+            component={ExecutionHistoryScreen}
+            options={{ title: 'Execution History' }}
           />
         </>
       ) : (

@@ -93,6 +93,13 @@ export const HomeScreen = () => {
             ? `Last selected action: ${lastAction}`
             : 'No action selected yet. Choose one to continue.'}
         </AppText>
+        <Button
+          label="View Execution History"
+          variant="ghost"
+          onPress={() => {
+            navigation.navigate('ExecutionHistory');
+          }}
+        />
       </View>
 
       <Button label="Logout" variant="secondary" onPress={() => void logout()} />
