@@ -3,6 +3,7 @@ import {
   ConflictException,
   HttpException,
   HttpStatus,
+  InternalServerErrorException,
   Injectable,
   Logger,
   UnauthorizedException
@@ -113,7 +114,7 @@ export class AuthService {
       update: { otpHash, expiresAt, attempts: 0 }
     });
 
-    this.logger.log(`OTP for ${phoneNumber}: ${otp}`);
+    await this.dispatchOtp(phoneNumber, otp);
 
     return {
       message: 'OTP sent successfully',
@@ -466,6 +467,52 @@ export class AuthService {
       email: payload?.email ?? null,
       name: payload?.name
     };
+  }
+
+  private async dispatchOtp(phoneNumber: string, otp: string) {
+    if (this.env.otpProvider === 'TWILIO') {
+      await this.sendOtpViaTwilio(phoneNumber, otp);
+      return;
+    }
+
+    this.logger.log(`OTP for ${phoneNumber}: ${otp}`);
+  }
+
+  private async sendOtpViaTwilio(phoneNumber: string, otp: string) {
+    const accountSid = this.env.twilioAccountSid;
+    const authToken = this.env.twilioAuthToken;
+    const fromNumber = this.env.twilioFromNumber;
+
+    if (!accountSid || !authToken || !fromNumber) {
+      this.logger.error('Twilio OTP provider is enabled but credentials are missing.');
+      throw new InternalServerErrorException('OTP provider is not configured');
+    }
+
+    const formattedTo = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+    const params = new URLSearchParams({
+      To: formattedTo,
+      From: fromNumber,
+      Body: `Your My Phone Agent OTP is ${otp}. It expires in 5 minutes.`
+    });
+
+    const authHeader = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${authHeader}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params.toString()
+      }
+    );
+
+    if (!response.ok) {
+      const reason = await response.text();
+      this.logger.error(`Twilio OTP send failed (${response.status}): ${reason}`);
+      throw new InternalServerErrorException('Failed to dispatch OTP');
+    }
   }
 
   private generateOtp() {

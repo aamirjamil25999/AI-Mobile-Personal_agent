@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+export type OtpProvider = 'DEV_LOG' | 'TWILIO';
+
 @Injectable()
 export class EnvService {
   get nodeEnv() {
@@ -76,6 +78,22 @@ export class EnvService {
 
   get exposeDevOtp() {
     return !this.isProduction && process.env.EXPOSE_DEV_OTP !== 'false';
+  }
+
+  get otpProvider(): OtpProvider {
+    return process.env.OTP_PROVIDER === 'TWILIO' ? 'TWILIO' : 'DEV_LOG';
+  }
+
+  get twilioAccountSid() {
+    return process.env.TWILIO_ACCOUNT_SID;
+  }
+
+  get twilioAuthToken() {
+    return process.env.TWILIO_AUTH_TOKEN;
+  }
+
+  get twilioFromNumber() {
+    return process.env.TWILIO_FROM_NUMBER;
   }
 
   get passwordResetExpiryMs() {

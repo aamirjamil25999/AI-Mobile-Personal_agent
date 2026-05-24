@@ -138,6 +138,10 @@ All endpoints are under `/api/workspace` (JWT required):
 - OTP expires in 5 minutes.
 - OTP resend has a short cooldown.
 - Invalid attempts are rate-limited.
+- For real SMS dispatch, set:
+  - `OTP_PROVIDER=TWILIO`
+  - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
+- Default mode is `OTP_PROVIDER=DEV_LOG`.
 
 ### Google login
 - Set Google client IDs in `frontend/.env` and backend `GOOGLE_CLIENT_IDS`.
