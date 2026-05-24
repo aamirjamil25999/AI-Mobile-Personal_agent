@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { LoginScreen } from '@/features/auth/screens/LoginScreen';
 import { SignupScreen } from '@/features/auth/screens/SignupScreen';
+import { ForgotPasswordScreen } from '@/features/auth/screens/ForgotPasswordScreen';
 import type { QuickActionId } from '@/features/home/types/home';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ActionCenterScreen } from '@/features/home/screens/ActionCenterScreen';
@@ -20,6 +21,7 @@ import { useAppTheme } from '@/theme/useAppTheme';
 export type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
+  ForgotPassword: undefined;
   Home: undefined;
   ActionCenter: {
     actionId: QuickActionId;
@@ -164,6 +166,11 @@ export const RootNavigator = () => {
             name="Signup"
             component={SignupScreen}
             options={{ title: 'Create Account' }}
+          />
+          <Stack.Screen
+            name="ForgotPassword"
+            component={ForgotPasswordScreen}
+            options={{ title: 'Forgot Password' }}
           />
         </>
       )}

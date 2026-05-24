@@ -331,6 +331,11 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
                   variant="ghost"
                   onPress={() => navigation.navigate('Signup')}
                 />
+                <Button
+                  label="Forgot Password?"
+                  variant="ghost"
+                  onPress={() => navigation.navigate('ForgotPassword')}
+                />
               </View>
             ) : (
               <View>
