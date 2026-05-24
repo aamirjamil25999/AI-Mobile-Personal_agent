@@ -71,6 +71,12 @@ export const ExecutionSummaryScreen = ({
           {action.icon} {action.title} Summary
         </AppText>
         <AppText muted style={styles.metaText}>
+          Run ID: {route.params.runId}
+        </AppText>
+        <AppText muted style={styles.metaText}>
+          Executed: {new Date(route.params.executedAt).toLocaleString('en-IN')}
+        </AppText>
+        <AppText muted style={styles.metaText}>
           Completed {route.params.finalStepIndex + 1}/{totalSteps} steps with{' '}
           {route.params.safetyCount} safety checks.
         </AppText>
@@ -117,13 +123,27 @@ export const ExecutionSummaryScreen = ({
         variant="ghost"
         onPress={() => {
           navigation.navigate('ExecutionAudit', {
+            runId: route.params.runId,
             actionId: action.id,
             prompt: route.params.prompt,
             safetyCount: route.params.safetyCount,
             targetContactName: route.params.targetContactName,
             targetPhoneNumber: route.params.targetPhoneNumber,
             callStatus: route.params.callStatus,
-            executedAt: new Date().toISOString()
+            executedAt: route.params.executedAt
+          });
+        }}
+      />
+      <Button
+        label="Plan Follow-up"
+        variant="ghost"
+        onPress={() => {
+          navigation.navigate('FollowUpPlanner', {
+            runId: route.params.runId,
+            actionId: action.id,
+            prompt: route.params.prompt,
+            targetContactName: route.params.targetContactName,
+            targetPhoneNumber: route.params.targetPhoneNumber
           });
         }}
       />

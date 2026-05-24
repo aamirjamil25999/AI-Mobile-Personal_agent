@@ -6,6 +6,11 @@ import * as Contacts from 'expo-contacts';
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/Text';
+import {
+  useGetPermissionsQuery,
+  useUpdatePermissionsMutation
+} from '@/features/workspace/api/workspaceApi';
+import type { PermissionState } from '@/features/workspace/types/workspace';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -13,8 +18,6 @@ type PermissionsManagerScreenProps = NativeStackScreenProps<
   RootStackParamList,
   'PermissionsManager'
 >;
-
-type PermissionState = 'granted' | 'denied' | 'undetermined' | 'unavailable';
 
 const getStatusLabel = (status: PermissionState) => {
   if (status === 'granted') {
@@ -41,27 +44,59 @@ const mapExpoStatus = (status: string): PermissionState => {
 
 export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScreenProps) => {
   const theme = useAppTheme();
+  const { data: serverPermissions, isFetching, refetch } = useGetPermissionsQuery();
+  const [updatePermissions, { isLoading: isSaving }] = useUpdatePermissionsMutation();
+
   const [contactsStatus, setContactsStatus] = useState<PermissionState>('undetermined');
   const [callStatus, setCallStatus] = useState<PermissionState>(
     Platform.OS === 'android' ? 'undetermined' : 'unavailable'
   );
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!serverPermissions) {
+      return;
+    }
+
+    setContactsStatus(serverPermissions.contactsPermission);
+    setCallStatus(serverPermissions.callPermission);
+  }, [serverPermissions]);
+
+  const syncPermissions = async (
+    nextContactsStatus: PermissionState,
+    nextCallStatus: PermissionState,
+    successMessage: string
+  ) => {
+    try {
+      await updatePermissions({
+        contactsPermission: nextContactsStatus,
+        callPermission: nextCallStatus
+      }).unwrap();
+      setStatusMessage(successMessage);
+      await refetch();
+    } catch {
+      setStatusMessage('Permission sync backend me fail ho gaya.');
+    }
+  };
+
   const refreshPermissions = async () => {
     setStatusMessage(null);
 
     try {
       const contactsPermission = await Contacts.getPermissionsAsync();
-      setContactsStatus(mapExpoStatus(contactsPermission.status));
+      const nextContactsStatus = mapExpoStatus(contactsPermission.status);
+      setContactsStatus(nextContactsStatus);
 
+      let nextCallStatus: PermissionState = 'unavailable';
       if (Platform.OS === 'android') {
         const hasCallPermission = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.CALL_PHONE
         );
-        setCallStatus(hasCallPermission ? 'granted' : 'denied');
-      } else {
-        setCallStatus('unavailable');
+        nextCallStatus = hasCallPermission ? 'granted' : 'denied';
       }
+      setCallStatus(nextCallStatus);
+
+      await syncPermissions(nextContactsStatus, nextCallStatus, 'Permission status synced.');
     } catch {
       setStatusMessage('Failed to read permission status.');
     }
@@ -69,15 +104,21 @@ export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScree
 
   useEffect(() => {
     void refreshPermissions();
+    // Intentional: run once when screen opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const requestContactsPermission = async () => {
     setStatusMessage(null);
     try {
       const permission = await Contacts.requestPermissionsAsync();
-      const mapped = mapExpoStatus(permission.status);
-      setContactsStatus(mapped);
-      setStatusMessage(`Contacts permission: ${getStatusLabel(mapped)}`);
+      const nextContactsStatus = mapExpoStatus(permission.status);
+      setContactsStatus(nextContactsStatus);
+      await syncPermissions(
+        nextContactsStatus,
+        callStatus,
+        `Contacts permission: ${getStatusLabel(nextContactsStatus)}`
+      );
     } catch {
       setStatusMessage('Failed to request contacts permission.');
     }
@@ -86,7 +127,7 @@ export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScree
   const requestCallPermission = async () => {
     if (Platform.OS !== 'android') {
       setCallStatus('unavailable');
-      setStatusMessage('Direct call permission is Android-only in this flow.');
+      await syncPermissions(contactsStatus, 'unavailable', 'Direct call permission Android-only hai.');
       return;
     }
 
@@ -102,10 +143,14 @@ export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScree
         }
       );
 
-      const mapped: PermissionState =
+      const nextCallStatus: PermissionState =
         permission === PermissionsAndroid.RESULTS.GRANTED ? 'granted' : 'denied';
-      setCallStatus(mapped);
-      setStatusMessage(`Call permission: ${getStatusLabel(mapped)}`);
+      setCallStatus(nextCallStatus);
+      await syncPermissions(
+        contactsStatus,
+        nextCallStatus,
+        `Call permission: ${getStatusLabel(nextCallStatus)}`
+      );
     } catch {
       setStatusMessage('Failed to request call permission.');
     }
@@ -127,6 +172,11 @@ export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScree
         <AppText muted style={styles.subtitle}>
           Manage required permissions for Smart Call and automation safety.
         </AppText>
+        {isFetching ? (
+          <AppText muted style={styles.subtitle}>
+            Syncing from backend...
+          </AppText>
+        ) : null}
       </View>
 
       <View
@@ -180,13 +230,14 @@ export const PermissionsManagerScreen = ({ navigation }: PermissionsManagerScree
 
       <View style={styles.buttonRow}>
         <Button
-          label="Refresh Status"
+          label="Refresh + Sync"
           variant="ghost"
           fullWidth={false}
           style={styles.halfButton}
           onPress={() => {
             void refreshPermissions();
           }}
+          isLoading={isFetching || isSaving}
         />
         <Button
           label="Open Device Settings"

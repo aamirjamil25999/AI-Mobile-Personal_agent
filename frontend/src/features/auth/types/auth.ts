@@ -39,3 +39,17 @@ export type PhoneVerifyOtpInput = {
 export type GoogleLoginInput = {
   idToken: string;
 };
+
+export type ForgotPasswordInput = {
+  email: string;
+};
+
+export type ForgotPasswordResponse = {
+  message: string;
+  resetToken?: string;
+};
+
+export type ResetPasswordInput = {
+  token: string;
+  password: string;
+};

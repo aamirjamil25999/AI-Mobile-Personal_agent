@@ -9,6 +9,12 @@ import { getQuickActionById } from '@/features/home/types/home';
 import type { QuickActionId } from '@/features/home/types/home';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
+import {
+  useGetFollowUpInboxQuery,
+  useSnoozeFollowUpMutation,
+  useUpdateFollowUpStatusMutation
+} from '@/features/workspace/api/workspaceApi';
+import type { FollowUpItem } from '@/features/workspace/types/workspace';
 
 type NotificationsInboxScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -16,18 +22,12 @@ type NotificationsInboxScreenProps = NativeStackScreenProps<
 >;
 
 type InboxStatus = 'pending' | 'done';
-
-type InboxItem = {
-  id: string;
-  title: string;
-  note: string;
-  channel: 'notification' | 'message' | 'email';
-  actionId: QuickActionId;
-  dueAt: string;
-  status: InboxStatus;
-};
-
 type FilterId = 'all' | InboxStatus;
+
+type InboxDisplayItem = Pick<
+  FollowUpItem,
+  'id' | 'title' | 'note' | 'channel' | 'actionId' | 'dueAt' | 'status'
+>;
 
 const FILTERS: { id: FilterId; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -35,13 +35,13 @@ const FILTERS: { id: FilterId; label: string }[] = [
   { id: 'done', label: 'Done' }
 ];
 
-const CHANNEL_LABEL: Record<InboxItem['channel'], string> = {
+const CHANNEL_LABEL: Record<string, string> = {
   notification: 'In-app Alert',
   message: 'Message Draft',
   email: 'Email Draft'
 };
 
-const DEFAULT_ITEMS: InboxItem[] = [
+const DEFAULT_ITEMS: InboxDisplayItem[] = [
   {
     id: 'fx-201',
     title: 'Follow up with Aman',
@@ -80,6 +80,11 @@ const DEFAULT_ITEMS: InboxItem[] = [
   }
 ];
 
+const VALID_ACTION_IDS = new Set<QuickActionId>(['call', 'message', 'email', 'settings']);
+
+const normalizeActionId = (value: string): QuickActionId =>
+  VALID_ACTION_IDS.has(value as QuickActionId) ? (value as QuickActionId) : 'message';
+
 const formatTime = (value: string) =>
   new Date(value).toLocaleString('en-IN', {
     hour12: true,
@@ -92,44 +97,31 @@ const formatTime = (value: string) =>
 export const NotificationsInboxScreen = ({ navigation }: NotificationsInboxScreenProps) => {
   const theme = useAppTheme();
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
-  const [items, setItems] = useState<InboxItem[]>(DEFAULT_ITEMS);
   const [status, setStatus] = useState<string | null>(null);
+
+  const { data: inboxItems, isFetching, refetch } = useGetFollowUpInboxQuery({
+    status: activeFilter
+  });
+  const [updateFollowUpStatus, { isLoading: isUpdatingStatus }] = useUpdateFollowUpStatusMutation();
+  const [snoozeFollowUp, { isLoading: isSnoozing }] = useSnoozeFollowUpMutation();
+  const hasServerItems = Boolean(inboxItems && inboxItems.length > 0);
+
+  const items = useMemo(() => {
+    if (hasServerItems) {
+      return inboxItems as InboxDisplayItem[];
+    }
+
+    if (activeFilter === 'all') {
+      return DEFAULT_ITEMS;
+    }
+
+    return DEFAULT_ITEMS.filter((item) => item.status === activeFilter);
+  }, [activeFilter, hasServerItems, inboxItems]);
 
   const pendingCount = useMemo(
     () => items.filter((item) => item.status === 'pending').length,
     [items]
   );
-
-  const filteredItems = useMemo(() => {
-    if (activeFilter === 'all') {
-      return items;
-    }
-    return items.filter((item) => item.status === activeFilter);
-  }, [activeFilter, items]);
-
-  const toggleDone = (id: string) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? { ...item, status: item.status === 'done' ? 'pending' : 'done' }
-          : item
-      )
-    );
-  };
-
-  const snoozeOneHour = (id: string) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) {
-          return item;
-        }
-
-        const nextTime = new Date(new Date(item.dueAt).getTime() + 60 * 60 * 1000).toISOString();
-        return { ...item, dueAt: nextTime, status: 'pending' };
-      })
-    );
-    setStatus('Task snoozed by 1 hour.');
-  };
 
   return (
     <ScreenContainer contentStyle={styles.container}>
@@ -176,8 +168,9 @@ export const NotificationsInboxScreen = ({ navigation }: NotificationsInboxScree
       </View>
 
       <View style={styles.list}>
-        {filteredItems.map((item) => {
-          const action = getQuickActionById(item.actionId);
+        {items.map((item) => {
+          const actionId = normalizeActionId(item.actionId);
+          const action = getQuickActionById(actionId);
           const isDone = item.status === 'done';
 
           return (
@@ -206,7 +199,7 @@ export const NotificationsInboxScreen = ({ navigation }: NotificationsInboxScree
                 </AppText>
               </View>
               <AppText muted style={styles.metaText}>
-                Channel: {CHANNEL_LABEL[item.channel]}
+                Channel: {CHANNEL_LABEL[item.channel] ?? item.channel}
               </AppText>
               <AppText muted style={styles.metaText}>
                 Due: {formatTime(item.dueAt)}
@@ -221,26 +214,55 @@ export const NotificationsInboxScreen = ({ navigation }: NotificationsInboxScree
                   variant="secondary"
                   fullWidth={false}
                   style={styles.halfButton}
-                  onPress={() => {
-                    toggleDone(item.id);
-                    setStatus(isDone ? 'Task moved to pending.' : 'Task marked as done.');
+                  onPress={async () => {
+                    if (!hasServerItems) {
+                      setStatus('Inbox backend me empty hai. Pehle follow-up schedule karo.');
+                      return;
+                    }
+
+                    try {
+                      await updateFollowUpStatus({
+                        followUpId: item.id,
+                        status: isDone ? 'pending' : 'done'
+                      }).unwrap();
+                      setStatus(isDone ? 'Task moved to pending.' : 'Task marked as done.');
+                      await refetch();
+                    } catch {
+                      setStatus('Failed to update follow-up status.');
+                    }
                   }}
+                  isLoading={isUpdatingStatus}
                 />
                 <Button
                   label="Snooze +1h"
                   variant="ghost"
                   fullWidth={false}
                   style={styles.halfButton}
-                  onPress={() => {
-                    snoozeOneHour(item.id);
+                  onPress={async () => {
+                    if (!hasServerItems) {
+                      setStatus('Inbox backend me empty hai. Pehle follow-up schedule karo.');
+                      return;
+                    }
+
+                    try {
+                      await snoozeFollowUp({
+                        followUpId: item.id,
+                        minutes: 60
+                      }).unwrap();
+                      setStatus('Task snoozed by 1 hour.');
+                      await refetch();
+                    } catch {
+                      setStatus('Failed to snooze follow-up.');
+                    }
                   }}
+                  isLoading={isSnoozing}
                 />
               </View>
               <Button
                 label="Open Action"
                 variant="ghost"
                 onPress={() => {
-                  navigation.navigate('ActionCenter', { actionId: item.actionId });
+                  navigation.navigate('ActionCenter', { actionId });
                 }}
               />
             </View>
@@ -250,20 +272,22 @@ export const NotificationsInboxScreen = ({ navigation }: NotificationsInboxScree
 
       <View style={styles.actionRow}>
         <Button
+          label="Refresh Inbox"
+          variant="ghost"
+          fullWidth={false}
+          style={styles.halfButton}
+          onPress={() => {
+            void refetch();
+          }}
+          isLoading={isFetching}
+        />
+        <Button
           label="Back To Home"
           variant="secondary"
           fullWidth={false}
           style={styles.halfButton}
           onPress={() => {
             navigation.navigate('Home');
-          }}
-        />
-        <Button
-          label="Open History"
-          fullWidth={false}
-          style={styles.halfButton}
-          onPress={() => {
-            navigation.navigate('ExecutionHistory');
           }}
         />
       </View>

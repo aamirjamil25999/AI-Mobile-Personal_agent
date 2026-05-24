@@ -8,6 +8,7 @@ import { PrismaService } from '@/database/prisma.service';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { HealthModule } from '@/modules/health/health.module';
 import { UsersModule } from '@/modules/users/users.module';
+import { WorkspaceModule } from '@/modules/workspace/workspace.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UsersModule } from '@/modules/users/users.module';
     ]),
     AuthModule,
     UsersModule,
+    WorkspaceModule,
     HealthModule
   ],
   providers: [

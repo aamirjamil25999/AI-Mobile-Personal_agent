@@ -14,9 +14,11 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { AuthService } from '@/modules/auth/auth.service';
 import { EmailLoginDto } from '@/modules/auth/dto/email-login.dto';
 import { EmailSignupDto } from '@/modules/auth/dto/email-signup.dto';
+import { ForgotPasswordDto } from '@/modules/auth/dto/forgot-password.dto';
 import { GoogleLoginDto } from '@/modules/auth/dto/google-login.dto';
 import { PhoneRequestOtpDto } from '@/modules/auth/dto/phone-request-otp.dto';
 import { PhoneVerifyOtpDto } from '@/modules/auth/dto/phone-verify-otp.dto';
+import { ResetPasswordDto } from '@/modules/auth/dto/reset-password.dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 
 @Controller('auth')
@@ -82,6 +84,16 @@ export class AuthController {
       user: auth.user,
       accessToken: auth.accessToken
     };
+  }
+
+  @Post('password/forgot')
+  forgotPassword(@Body() body: ForgotPasswordDto) {
+    return this.authService.requestPasswordReset(body);
+  }
+
+  @Post('password/reset')
+  resetPassword(@Body() body: ResetPasswordDto) {
+    return this.authService.resetPassword(body);
   }
 
   @Post('refresh')

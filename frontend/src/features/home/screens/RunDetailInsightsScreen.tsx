@@ -6,6 +6,8 @@ import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/Text';
 import { getQuickActionById } from '@/features/home/types/home';
+import type { QuickActionId } from '@/features/home/types/home';
+import { useGetExecutionQuery } from '@/features/workspace/api/workspaceApi';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -13,6 +15,14 @@ type RunDetailInsightsScreenProps = NativeStackScreenProps<
   RootStackParamList,
   'RunDetailInsights'
 >;
+
+const VALID_ACTIONS: QuickActionId[] = ['call', 'message', 'email', 'settings'];
+
+const normalizeActionId = (value: string): QuickActionId =>
+  VALID_ACTIONS.includes(value as QuickActionId) ? (value as QuickActionId) : 'message';
+
+const normalizeStatus = (value: string): 'success' | 'attention' =>
+  value === 'success' ? 'success' : 'attention';
 
 const formatTime = (value: string) =>
   new Date(value).toLocaleString('en-IN', {
@@ -28,18 +38,28 @@ export const RunDetailInsightsScreen = ({
   route
 }: RunDetailInsightsScreenProps) => {
   const theme = useAppTheme();
-  const action = getQuickActionById(route.params.actionId);
+  const { data: run, isFetching } = useGetExecutionQuery(route.params.runId);
+
+  const resolvedActionId = normalizeActionId(run?.actionId ?? route.params.actionId);
+  const action = getQuickActionById(resolvedActionId);
+  const prompt = run?.prompt ?? route.params.prompt;
+  const executedAt = run?.executedAt ?? route.params.executedAt;
+  const safetyCount = run?.safetyCount ?? route.params.safetyCount;
+  const status = normalizeStatus(run?.status ?? route.params.status);
+  const targetContactName = run?.targetContactName ?? route.params.targetContactName;
+  const targetPhoneNumber = run?.targetPhoneNumber ?? route.params.targetPhoneNumber;
+  const callStatus = run?.callStatus ?? route.params.callStatus;
 
   const insightLines = useMemo(() => {
-    if (action.id === 'call') {
+    if (resolvedActionId === 'call') {
       return [
-        `Contact match: ${route.params.targetContactName ?? 'Not resolved'}`,
-        `Resolved number: ${route.params.targetPhoneNumber ?? 'Not available'}`,
-        `Dial result: ${route.params.callStatus ?? 'Dial flow triggered'}`
+        `Contact match: ${targetContactName ?? 'Not resolved'}`,
+        `Resolved number: ${targetPhoneNumber ?? 'Not available'}`,
+        `Dial result: ${callStatus ?? 'Dial flow triggered'}`
       ];
     }
 
-    if (action.id === 'message') {
+    if (resolvedActionId === 'message') {
       return [
         'Prompt analysis complete for tone and urgency.',
         'Draft response policy check passed.',
@@ -47,7 +67,7 @@ export const RunDetailInsightsScreen = ({
       ];
     }
 
-    if (action.id === 'email') {
+    if (resolvedActionId === 'email') {
       return [
         'Subject-quality rule validated.',
         'Body clarity check passed.',
@@ -60,12 +80,7 @@ export const RunDetailInsightsScreen = ({
       'Policy constraints enforced before apply.',
       'Non-critical settings change mode selected.'
     ];
-  }, [
-    action.id,
-    route.params.callStatus,
-    route.params.targetContactName,
-    route.params.targetPhoneNumber
-  ]);
+  }, [callStatus, resolvedActionId, targetContactName, targetPhoneNumber]);
 
   return (
     <ScreenContainer contentStyle={styles.container}>
@@ -86,17 +101,22 @@ export const RunDetailInsightsScreen = ({
           Run ID: {route.params.runId}
         </AppText>
         <AppText muted style={styles.metaText}>
-          Executed: {formatTime(route.params.executedAt)}
+          Executed: {formatTime(executedAt)}
         </AppText>
+        {isFetching ? (
+          <AppText muted style={styles.metaText}>
+            Syncing run details...
+          </AppText>
+        ) : null}
         <AppText
           style={[
             styles.statusBadge,
             {
-              color: route.params.status === 'success' ? theme.colors.success : theme.colors.danger
+              color: status === 'success' ? theme.colors.success : theme.colors.danger
             }
           ]}
         >
-          {route.params.status === 'success' ? 'SUCCESS' : 'ATTENTION'}
+          {status === 'success' ? 'SUCCESS' : 'ATTENTION'}
         </AppText>
       </View>
 
@@ -112,7 +132,7 @@ export const RunDetailInsightsScreen = ({
       >
         <AppText style={styles.blockTitle}>Prompt Input</AppText>
         <AppText muted style={styles.promptText}>
-          {route.params.prompt}
+          {prompt}
         </AppText>
       </View>
 
@@ -135,7 +155,7 @@ export const RunDetailInsightsScreen = ({
           ))}
         </View>
         <AppText muted style={styles.metaText}>
-          Safety checks enabled: {route.params.safetyCount}
+          Safety checks enabled: {safetyCount}
         </AppText>
       </View>
 
@@ -144,13 +164,14 @@ export const RunDetailInsightsScreen = ({
         variant="ghost"
         onPress={() => {
           navigation.navigate('ExecutionAudit', {
-            actionId: route.params.actionId,
-            prompt: route.params.prompt,
-            safetyCount: route.params.safetyCount,
-            targetContactName: route.params.targetContactName,
-            targetPhoneNumber: route.params.targetPhoneNumber,
-            callStatus: route.params.callStatus,
-            executedAt: route.params.executedAt
+            runId: route.params.runId,
+            actionId: resolvedActionId,
+            prompt,
+            safetyCount,
+            targetContactName: targetContactName ?? undefined,
+            targetPhoneNumber: targetPhoneNumber ?? undefined,
+            callStatus: callStatus ?? undefined,
+            executedAt
           });
         }}
       />
@@ -160,10 +181,10 @@ export const RunDetailInsightsScreen = ({
         onPress={() => {
           navigation.navigate('FollowUpPlanner', {
             runId: route.params.runId,
-            actionId: route.params.actionId,
-            prompt: route.params.prompt,
-            targetContactName: route.params.targetContactName,
-            targetPhoneNumber: route.params.targetPhoneNumber
+            actionId: resolvedActionId,
+            prompt,
+            targetContactName: targetContactName ?? undefined,
+            targetPhoneNumber: targetPhoneNumber ?? undefined
           });
         }}
       />
@@ -176,7 +197,7 @@ export const RunDetailInsightsScreen = ({
           style={styles.halfButton}
           onPress={() => {
             navigation.replace('ActionCenter', {
-              actionId: route.params.actionId
+              actionId: resolvedActionId
             });
           }}
         />

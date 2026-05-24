@@ -9,6 +9,8 @@ import { getQuickActionById } from '@/features/home/types/home';
 import type { QuickActionId } from '@/features/home/types/home';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
+import { useGetExecutionHistoryQuery } from '@/features/workspace/api/workspaceApi';
+import type { ExecutionHistoryItem } from '@/features/workspace/types/workspace';
 
 type ExecutionHistoryScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -17,72 +19,12 @@ type ExecutionHistoryScreenProps = NativeStackScreenProps<
 
 type FilterId = 'all' | QuickActionId;
 
-type HistoryRecord = {
-  id: string;
-  actionId: QuickActionId;
-  prompt: string;
-  executedAt: string;
-  safetyCount: number;
-  status: 'success' | 'attention';
-  targetContactName?: string;
-  targetPhoneNumber?: string;
-  callStatus?: string;
-};
-
 const FILTERS: { id: FilterId; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'call', label: 'Calls' },
   { id: 'message', label: 'Messages' },
   { id: 'email', label: 'Emails' },
   { id: 'settings', label: 'Settings' }
-];
-
-const HISTORY_RECORDS: HistoryRecord[] = [
-  {
-    id: 'run-107',
-    actionId: 'call',
-    prompt: 'Call Aman and sync tomorrow timeline in under 3 minutes.',
-    executedAt: '2026-05-24T07:25:00.000Z',
-    safetyCount: 3,
-    status: 'success',
-    targetContactName: 'Aman',
-    targetPhoneNumber: '9899994567',
-    callStatus: 'Dialer opened for 9899994567'
-  },
-  {
-    id: 'run-106',
-    actionId: 'email',
-    prompt: 'Draft leave email for Monday with handover details.',
-    executedAt: '2026-05-24T06:45:00.000Z',
-    safetyCount: 3,
-    status: 'success'
-  },
-  {
-    id: 'run-105',
-    actionId: 'message',
-    prompt: 'Send icon deadline reminder to design group.',
-    executedAt: '2026-05-24T05:20:00.000Z',
-    safetyCount: 2,
-    status: 'success'
-  },
-  {
-    id: 'run-104',
-    actionId: 'settings',
-    prompt: 'Set low power mode from 20% and dim brightness to 35%.',
-    executedAt: '2026-05-23T19:35:00.000Z',
-    safetyCount: 3,
-    status: 'success'
-  },
-  {
-    id: 'run-103',
-    actionId: 'call',
-    prompt: 'Call Rohit for investor deck update and capture key blockers.',
-    executedAt: '2026-05-23T16:10:00.000Z',
-    safetyCount: 2,
-    status: 'attention',
-    targetContactName: 'Rohit',
-    callStatus: 'Contacts permission denied. Please allow contacts access.'
-  }
 ];
 
 const formatTime = (value: string) =>
@@ -94,17 +36,38 @@ const formatTime = (value: string) =>
     minute: '2-digit'
   });
 
+const normalizeStatus = (status: string): 'success' | 'attention' =>
+  status === 'success' ? 'success' : 'attention';
+
+const mapHistory = (items: ExecutionHistoryItem[]) =>
+  items.map((item) => ({
+    id: item.id,
+    actionId: (item.actionId as QuickActionId) ?? 'message',
+    prompt: item.prompt,
+    executedAt: item.executedAt,
+    safetyCount: item.safetyCount,
+    status: normalizeStatus(item.status),
+    targetContactName: item.targetContactName ?? undefined,
+    targetPhoneNumber: item.targetPhoneNumber ?? undefined,
+    callStatus: item.callStatus ?? undefined
+  }));
+
 export const ExecutionHistoryScreen = ({ navigation }: ExecutionHistoryScreenProps) => {
   const theme = useAppTheme();
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
+  const { data, isFetching, refetch } = useGetExecutionHistoryQuery({
+    limit: 60
+  });
+
+  const records = useMemo(() => mapHistory(data ?? []), [data]);
 
   const filteredRecords = useMemo(() => {
     if (activeFilter === 'all') {
-      return HISTORY_RECORDS;
+      return records;
     }
 
-    return HISTORY_RECORDS.filter((item) => item.actionId === activeFilter);
-  }, [activeFilter]);
+    return records.filter((item) => item.actionId === activeFilter);
+  }, [activeFilter, records]);
 
   const successCount = useMemo(
     () => filteredRecords.filter((item) => item.status === 'success').length,
@@ -125,11 +88,16 @@ export const ExecutionHistoryScreen = ({ navigation }: ExecutionHistoryScreenPro
       >
         <AppText style={styles.title}>Execution History</AppText>
         <AppText muted style={styles.subtitle}>
-          Review past runs and open audit logs for any execution.
+          Review past runs and open detailed insights + audit logs.
         </AppText>
         <AppText muted style={styles.summaryText}>
           Showing {filteredRecords.length} runs, {successCount} successful.
         </AppText>
+        {isFetching ? (
+          <AppText muted style={styles.summaryText}>
+            Syncing latest runs...
+          </AppText>
+        ) : null}
       </View>
 
       <View style={styles.filterRow}>
@@ -156,6 +124,21 @@ export const ExecutionHistoryScreen = ({ navigation }: ExecutionHistoryScreenPro
       </View>
 
       <View style={styles.list}>
+        {filteredRecords.length === 0 ? (
+          <View
+            style={[
+              styles.emptyCard,
+              {
+                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.surface,
+                borderRadius: theme.radius.md
+              }
+            ]}
+          >
+            <AppText muted>No runs yet. Execute any action and it will appear here.</AppText>
+          </View>
+        ) : null}
+
         {filteredRecords.map((record) => {
           const action = getQuickActionById(record.actionId);
 
@@ -211,13 +194,27 @@ export const ExecutionHistoryScreen = ({ navigation }: ExecutionHistoryScreenPro
         })}
       </View>
 
-      <Button
-        label="Back To Home"
-        variant="secondary"
-        onPress={() => {
-          navigation.popToTop();
-        }}
-      />
+      <View style={styles.buttonRow}>
+        <Button
+          label="Refresh"
+          variant="ghost"
+          fullWidth={false}
+          style={styles.halfButton}
+          onPress={() => {
+            void refetch();
+          }}
+          isLoading={isFetching}
+        />
+        <Button
+          label="Back To Home"
+          variant="secondary"
+          fullWidth={false}
+          style={styles.halfButton}
+          onPress={() => {
+            navigation.popToTop();
+          }}
+        />
+      </View>
     </ScreenContainer>
   );
 };
@@ -285,6 +282,18 @@ const styles = StyleSheet.create({
     lineHeight: 17
   },
   itemMeta: {
-    fontSize: 11
+    fontSize: 12
+  },
+  emptyCard: {
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 10
+  },
+  halfButton: {
+    flex: 1
   }
 });

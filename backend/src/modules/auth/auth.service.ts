@@ -12,14 +12,17 @@ import { JwtService } from '@nestjs/jwt';
 import { OAuth2Client } from 'google-auth-library';
 import * as bcrypt from 'bcryptjs';
 import type { CookieOptions } from 'express';
+import { randomBytes } from 'crypto';
 
 import { EnvService } from '@/config/env';
 import { PrismaService } from '@/database/prisma.service';
 import type { EmailLoginDto } from '@/modules/auth/dto/email-login.dto';
 import type { EmailSignupDto } from '@/modules/auth/dto/email-signup.dto';
+import type { ForgotPasswordDto } from '@/modules/auth/dto/forgot-password.dto';
 import type { GoogleLoginDto } from '@/modules/auth/dto/google-login.dto';
 import type { PhoneRequestOtpDto } from '@/modules/auth/dto/phone-request-otp.dto';
 import type { PhoneVerifyOtpDto } from '@/modules/auth/dto/phone-verify-otp.dto';
+import type { ResetPasswordDto } from '@/modules/auth/dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -194,6 +197,97 @@ export class AuthService {
       }));
 
     return this.issueAuthResponse(user);
+  }
+
+  async requestPasswordReset(dto: ForgotPasswordDto) {
+    const email = dto.email.toLowerCase().trim();
+    const user = await this.prisma.user.findUnique({
+      where: { email }
+    });
+
+    const genericResponse = {
+      message: 'If this email exists, password reset instructions have been sent.'
+    };
+
+    if (!user) {
+      return genericResponse;
+    }
+
+    const resetToken = randomBytes(32).toString('hex');
+    const tokenHash = await bcrypt.hash(resetToken, 10);
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt: new Date(Date.now() + this.env.passwordResetExpiryMs)
+      }
+    });
+
+    this.logger.log(`Password reset token for ${email}: ${resetToken}`);
+
+    return {
+      ...genericResponse,
+      resetToken: this.env.exposeDevOtp ? resetToken : undefined
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const activeTokens = await this.prisma.passwordResetToken.findMany({
+      where: {
+        usedAt: null,
+        expiresAt: {
+          gt: new Date()
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: 100
+    });
+
+    let matchedTokenId: string | null = null;
+    let matchedUserId: string | null = null;
+
+    for (const token of activeTokens) {
+      const isMatch = await bcrypt.compare(dto.token, token.tokenHash);
+      if (isMatch) {
+        matchedTokenId = token.id;
+        matchedUserId = token.userId;
+        break;
+      }
+    }
+
+    if (!matchedTokenId || !matchedUserId) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const now = new Date();
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: matchedUserId },
+        data: {
+          passwordHash
+        }
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: matchedTokenId },
+        data: { usedAt: now }
+      }),
+      this.prisma.refreshSession.updateMany({
+        where: {
+          userId: matchedUserId,
+          revokedAt: null
+        },
+        data: { revokedAt: now }
+      })
+    ]);
+
+    return {
+      message: 'Password reset successful. Please sign in again.'
+    };
   }
 
   async refreshToken(refreshToken: string) {

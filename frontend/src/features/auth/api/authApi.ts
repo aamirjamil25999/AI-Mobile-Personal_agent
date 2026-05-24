@@ -5,8 +5,11 @@ import type {
   AuthResponse,
   EmailLoginInput,
   EmailSignupInput,
+  ForgotPasswordInput,
+  ForgotPasswordResponse,
   GoogleLoginInput,
   PhoneRequestOtpInput,
+  ResetPasswordInput,
   PhoneVerifyOtpInput,
   UserProfile
 } from '@/features/auth/types/auth';
@@ -71,6 +74,20 @@ export const authApi = createApi({
         body
       })
     }),
+    forgotPassword: builder.mutation<ForgotPasswordResponse, ForgotPasswordInput>({
+      query: (body) => ({
+        url: API_ENDPOINTS.auth.forgotPassword,
+        method: 'POST',
+        body
+      })
+    }),
+    resetPassword: builder.mutation<{ message: string }, ResetPasswordInput>({
+      query: (body) => ({
+        url: API_ENDPOINTS.auth.resetPassword,
+        method: 'POST',
+        body
+      })
+    }),
     refreshToken: builder.mutation<RefreshResponse, void>({
       query: () => ({
         url: API_ENDPOINTS.auth.refresh,
@@ -98,6 +115,8 @@ export const {
   useRequestPhoneOtpMutation,
   useVerifyPhoneOtpMutation,
   useLoginWithGoogleMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
   useRefreshTokenMutation,
   useLogoutMutation,
   useGetMeQuery

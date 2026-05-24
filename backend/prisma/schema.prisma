@@ -19,16 +19,21 @@ enum AuthProvider {
 }
 
 model User {
-  id           String           @id @default(cuid())
-  email        String?          @unique
-  phoneNumber  String?          @unique
-  fullName     String?
-  passwordHash String?
-  role         UserRole         @default(USER)
-  provider     AuthProvider     @default(EMAIL)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  sessions     RefreshSession[]
+  id                  String               @id @default(cuid())
+  email               String?              @unique
+  phoneNumber         String?              @unique
+  fullName            String?
+  passwordHash        String?
+  role                UserRole             @default(USER)
+  provider            AuthProvider         @default(EMAIL)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  sessions            RefreshSession[]
+  preferences         UserPreference?
+  agentSetting        AgentSetting?
+  executionRuns       ExecutionRun[]
+  followUpTasks       FollowUpTask[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model RefreshSession {
@@ -46,11 +51,94 @@ model RefreshSession {
 }
 
 model PhoneOtp {
-  id         String   @id @default(cuid())
-  phoneNumber String  @unique
-  otpHash    String
-  attempts   Int      @default(0)
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(cuid())
+  phoneNumber String   @unique
+  otpHash     String
+  attempts    Int      @default(0)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt(sort: Desc)])
+}
+
+model UserPreference {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  contactsPermission String   @default("undetermined")
+  callPermission     String   @default("undetermined")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AgentSetting {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  plugins   Json
+  safety    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ExecutionRun {
+  id                String           @id @default(cuid())
+  userId            String
+  actionId          String
+  prompt            String
+  safetyCount       Int              @default(0)
+  status            String           @default("success")
+  targetContactName String?
+  targetPhoneNumber String?
+  callStatus        String?
+  executedAt        DateTime         @default(now())
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  audits            ExecutionAudit[]
+  followUps         FollowUpTask[]
+
+  @@index([userId, executedAt(sort: Desc)])
+}
+
+model ExecutionAudit {
+  id        String       @id @default(cuid())
+  runId     String
+  title     String
+  detail    String
+  status    String       @default("info")
+  createdAt DateTime     @default(now())
+  run       ExecutionRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, createdAt(sort: Desc)])
+}
+
+model FollowUpTask {
+  id        String       @id @default(cuid())
+  userId    String
+  runId     String?
+  actionId  String
+  title     String
+  note      String
+  channel   String
+  dueAt     DateTime
+  status    String       @default("pending")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  run       ExecutionRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@index([userId, dueAt(sort: Asc)])
+  @@index([runId])
 }

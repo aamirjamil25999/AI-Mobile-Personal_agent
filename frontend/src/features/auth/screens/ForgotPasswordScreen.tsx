@@ -9,6 +9,7 @@ import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { AppText } from '@/components/ui/Text';
+import { useForgotPasswordMutation } from '@/features/auth/api/authApi';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -26,7 +27,7 @@ type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 export const ForgotPasswordScreen = ({ navigation }: ForgotPasswordScreenProps) => {
   const theme = useAppTheme();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
 
   const {
     control,
@@ -41,13 +42,16 @@ export const ForgotPasswordScreen = ({ navigation }: ForgotPasswordScreenProps) 
 
   const handleSendReset = handleSubmit(async ({ email }) => {
     setStatusMessage(null);
-    setIsSubmitting(true);
-
-    // Backend reset endpoint is not live yet, so we keep a safe UX response.
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    setIsSubmitting(false);
-    setStatusMessage(`If ${email} exists, reset instructions have been sent.`);
+    try {
+      const response = await forgotPassword({ email }).unwrap();
+      setStatusMessage(
+        response.resetToken
+          ? `${response.message} Dev reset token: ${response.resetToken}`
+          : response.message
+      );
+    } catch {
+      setStatusMessage('Unable to process reset request right now.');
+    }
   });
 
   return (
@@ -83,7 +87,7 @@ export const ForgotPasswordScreen = ({ navigation }: ForgotPasswordScreenProps) 
           )}
         />
 
-        <Button label="Send Reset Link" onPress={handleSendReset} isLoading={isSubmitting} />
+        <Button label="Send Reset Link" onPress={handleSendReset} isLoading={isLoading} />
         <Button
           label="Back To Sign In"
           variant="secondary"

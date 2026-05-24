@@ -6,6 +6,7 @@ import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/Text';
 import { getQuickActionById } from '@/features/home/types/home';
+import { useGetExecutionAuditsQuery } from '@/features/workspace/api/workspaceApi';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -40,9 +41,19 @@ const formatTime = (value: string) =>
 export const ExecutionAuditScreen = ({ navigation, route }: ExecutionAuditScreenProps) => {
   const theme = useAppTheme();
   const action = getQuickActionById(route.params.actionId);
+  const { data, isFetching, refetch } = useGetExecutionAuditsQuery(route.params.runId);
 
   const auditEvents = useMemo<AuditEvent[]>(() => {
-    const commonEvents: AuditEvent[] = [
+    if (data && data.length > 0) {
+      return data.map((event) => ({
+        id: event.id,
+        title: event.title,
+        detail: event.detail,
+        status: event.status === 'ok' ? 'ok' : 'info'
+      }));
+    }
+
+    const fallbackEvents: AuditEvent[] = [
       {
         id: 'queued',
         title: 'Task accepted',
@@ -63,8 +74,8 @@ export const ExecutionAuditScreen = ({ navigation, route }: ExecutionAuditScreen
       }
     ];
 
-    if (action.id === 'call') {
-      commonEvents.push({
+    if (route.params.actionId === 'call') {
+      fallbackEvents.push({
         id: 'call',
         title: 'Dial attempt',
         detail: route.params.callStatus ?? 'Dialer launch requested from smart call flow.',
@@ -72,8 +83,14 @@ export const ExecutionAuditScreen = ({ navigation, route }: ExecutionAuditScreen
       });
     }
 
-    return commonEvents;
-  }, [action.id, action.title, route.params.callStatus, route.params.safetyCount]);
+    return fallbackEvents;
+  }, [
+    action.title,
+    data,
+    route.params.actionId,
+    route.params.callStatus,
+    route.params.safetyCount
+  ]);
 
   return (
     <ScreenContainer contentStyle={styles.container}>
@@ -89,11 +106,19 @@ export const ExecutionAuditScreen = ({ navigation, route }: ExecutionAuditScreen
       >
         <AppText style={styles.title}>Audit Log</AppText>
         <AppText muted style={styles.metaText}>
+          Run ID: {route.params.runId}
+        </AppText>
+        <AppText muted style={styles.metaText}>
           Action: {action.title}
         </AppText>
         <AppText muted style={styles.metaText}>
           Executed at: {formatTime(route.params.executedAt)}
         </AppText>
+        {isFetching ? (
+          <AppText muted style={styles.metaText}>
+            Syncing audit trail...
+          </AppText>
+        ) : null}
       </View>
 
       <View
@@ -150,6 +175,14 @@ export const ExecutionAuditScreen = ({ navigation, route }: ExecutionAuditScreen
         </View>
       </View>
 
+      <Button
+        label="Refresh Audit"
+        variant="ghost"
+        onPress={() => {
+          void refetch();
+        }}
+        isLoading={isFetching}
+      />
       <Button
         label="Back"
         variant="secondary"

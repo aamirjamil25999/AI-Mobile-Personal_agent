@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -9,6 +9,7 @@ import type { QuickActionId } from '@/features/home/types/home';
 import { getQuickActionById } from '@/features/home/types/home';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
+import { useGetFollowUpTemplatesQuery } from '@/features/workspace/api/workspaceApi';
 
 type FollowUpTemplatesScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -126,8 +127,28 @@ export const FollowUpTemplatesScreen = ({
 }: FollowUpTemplatesScreenProps) => {
   const theme = useAppTheme();
   const action = getQuickActionById(route.params.actionId);
-  const templates = TEMPLATE_MAP[route.params.actionId];
+  const { data: serverTemplates } = useGetFollowUpTemplatesQuery({
+    actionId: route.params.actionId
+  });
+  const templates = useMemo(() => {
+    if (Array.isArray(serverTemplates) && serverTemplates.length > 0) {
+      return serverTemplates;
+    }
+
+    return TEMPLATE_MAP[route.params.actionId];
+  }, [route.params.actionId, serverTemplates]);
   const [selectedTemplateId, setSelectedTemplateId] = useState(templates[0]?.id ?? '');
+
+  useEffect(() => {
+    if (!templates.length) {
+      setSelectedTemplateId('');
+      return;
+    }
+
+    if (!templates.find((item) => item.id === selectedTemplateId)) {
+      setSelectedTemplateId(templates[0].id);
+    }
+  }, [selectedTemplateId, templates]);
 
   const selectedTemplate = useMemo(
     () => templates.find((item) => item.id === selectedTemplateId) ?? templates[0],

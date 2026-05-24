@@ -1,12 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { AppText } from '@/components/ui/Text';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { setUser } from '@/features/auth/slices/authSlice';
 import { toggleThemeMode } from '@/features/theme/slices/themeSlice';
+import {
+  useGetProfileQuery,
+  useUpdateProfileMutation
+} from '@/features/workspace/api/workspaceApi';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useAppTheme } from '@/theme/useAppTheme';
@@ -33,23 +39,32 @@ export const ProfileAccountScreen = ({ navigation }: ProfileAccountScreenProps) 
   const dispatch = useAppDispatch();
   const themeMode = useAppSelector((state) => state.theme.mode);
   const { user, logout } = useAuth();
+  const { data: profileData, isFetching, refetch } = useGetProfileQuery();
+  const [updateProfile, { isLoading: isSaving }] = useUpdateProfileMutation();
   const [status, setStatus] = useState<string | null>(null);
 
+  const sourceUser = profileData?.user ?? user;
+  const [fullNameDraft, setFullNameDraft] = useState(sourceUser?.fullName ?? '');
+
+  useEffect(() => {
+    setFullNameDraft(sourceUser?.fullName ?? '');
+  }, [sourceUser?.fullName]);
+
   const userName = useMemo(() => {
-    if (user?.fullName?.trim()) {
-      return user.fullName.trim();
+    if (sourceUser?.fullName?.trim()) {
+      return sourceUser.fullName.trim();
     }
 
-    if (user?.email) {
-      return user.email.split('@')[0];
+    if (sourceUser?.email) {
+      return sourceUser.email.split('@')[0];
     }
 
-    if (user?.phoneNumber) {
-      return `User ${user.phoneNumber.slice(-4)}`;
+    if (sourceUser?.phoneNumber) {
+      return `User ${sourceUser.phoneNumber.slice(-4)}`;
     }
 
     return 'Agent User';
-  }, [user]);
+  }, [sourceUser?.email, sourceUser?.fullName, sourceUser?.phoneNumber]);
 
   const initials = useMemo(() => {
     const words = userName.split(' ').filter(Boolean);
@@ -61,6 +76,24 @@ export const ProfileAccountScreen = ({ navigation }: ProfileAccountScreenProps) 
       .map((item) => item[0]?.toUpperCase() ?? '')
       .join('');
   }, [userName]);
+
+  const handleSaveProfile = async () => {
+    const trimmed = fullNameDraft.trim();
+
+    if (!trimmed) {
+      setStatus('Full name blank nahi hona chahiye.');
+      return;
+    }
+
+    try {
+      const response = await updateProfile({ fullName: trimmed }).unwrap();
+      dispatch(setUser(response.user));
+      setStatus('Profile updated successfully.');
+      await refetch();
+    } catch {
+      setStatus('Profile update failed. Backend check karke phir try karo.');
+    }
+  };
 
   return (
     <ScreenContainer contentStyle={styles.container}>
@@ -91,6 +124,11 @@ export const ProfileAccountScreen = ({ navigation }: ProfileAccountScreenProps) 
             <AppText muted style={styles.subtitle}>
               Profile & Account
             </AppText>
+            {isFetching ? (
+              <AppText muted style={styles.subtitle}>
+                Syncing profile...
+              </AppText>
+            ) : null}
           </View>
         </View>
       </View>
@@ -106,11 +144,53 @@ export const ProfileAccountScreen = ({ navigation }: ProfileAccountScreenProps) 
         ]}
       >
         <AppText style={styles.blockTitle}>Account Details</AppText>
-        <AppText muted>Email: {user?.email ?? 'Not set'}</AppText>
-        <AppText muted>Phone: {user?.phoneNumber ?? 'Not set'}</AppText>
-        <AppText muted>Provider: {user?.provider ?? 'Unknown'}</AppText>
-        <AppText muted>Role: {user?.role ?? 'Unknown'}</AppText>
-        <AppText muted>User ID: {maskUserId(user?.id)}</AppText>
+        <AppText muted>Email: {sourceUser?.email ?? 'Not set'}</AppText>
+        <AppText muted>Phone: {sourceUser?.phoneNumber ?? 'Not set'}</AppText>
+        <AppText muted>Provider: {sourceUser?.provider ?? 'Unknown'}</AppText>
+        <AppText muted>Role: {sourceUser?.role ?? 'Unknown'}</AppText>
+        <AppText muted>User ID: {maskUserId(sourceUser?.id)}</AppText>
+      </View>
+
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.border,
+            borderRadius: theme.radius.md
+          }
+        ]}
+      >
+        <AppText style={styles.blockTitle}>Profile Update</AppText>
+        <Input
+          label="Full Name"
+          value={fullNameDraft}
+          onChangeText={setFullNameDraft}
+          placeholder="Enter your full name"
+          autoCapitalize="words"
+        />
+        <View style={styles.buttonRow}>
+          <Button
+            label="Save Name"
+            variant="secondary"
+            fullWidth={false}
+            style={styles.halfButton}
+            onPress={() => {
+              void handleSaveProfile();
+            }}
+            isLoading={isSaving}
+          />
+          <Button
+            label="Refresh"
+            variant="ghost"
+            fullWidth={false}
+            style={styles.halfButton}
+            onPress={() => {
+              void refetch();
+            }}
+            isLoading={isFetching}
+          />
+        </View>
       </View>
 
       <View

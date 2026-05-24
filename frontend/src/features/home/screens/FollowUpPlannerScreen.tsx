@@ -9,6 +9,7 @@ import { AppText } from '@/components/ui/Text';
 import { getQuickActionById } from '@/features/home/types/home';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppTheme } from '@/theme/useAppTheme';
+import { useCreateFollowUpMutation } from '@/features/workspace/api/workspaceApi';
 
 type FollowUpPlannerScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -39,6 +40,7 @@ const CHANNELS: { id: Channel; label: string }[] = [
 export const FollowUpPlannerScreen = ({ navigation, route }: FollowUpPlannerScreenProps) => {
   const theme = useAppTheme();
   const action = getQuickActionById(route.params.actionId);
+  const [createFollowUp, { isLoading: isScheduling }] = useCreateFollowUpMutation();
 
   const defaultNote =
     action.id === 'call'
@@ -207,14 +209,47 @@ export const FollowUpPlannerScreen = ({ navigation, route }: FollowUpPlannerScre
 
       <Button
         label="Schedule Follow-up"
-        onPress={() => {
+        onPress={async () => {
           if (!note.trim()) {
             setStatus('Please add a short follow-up note before scheduling.');
             return;
           }
 
-          setStatus(`Follow-up scheduled for ${selectedSlot.label} via ${channel}.`);
+          try {
+            const dueAt = (() => {
+              const now = new Date();
+              if (selectedSlot.id === '15m') {
+                return new Date(now.getTime() + 15 * 60 * 1000).toISOString();
+              }
+              if (selectedSlot.id === '1h') {
+                return new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+              }
+              if (selectedSlot.id === 'today') {
+                const next = new Date(now);
+                next.setHours(18, 0, 0, 0);
+                return next.toISOString();
+              }
+              const next = new Date(now);
+              next.setDate(next.getDate() + 1);
+              next.setHours(10, 0, 0, 0);
+              return next.toISOString();
+            })();
+
+            await createFollowUp({
+              runId: route.params.runId,
+              actionId: route.params.actionId,
+              title: `${action.title} follow-up`,
+              note: note.trim(),
+              channel,
+              dueAt
+            }).unwrap();
+
+            setStatus(`Follow-up scheduled for ${selectedSlot.label} via ${channel}.`);
+          } catch {
+            setStatus('Failed to schedule follow-up.');
+          }
         }}
+        isLoading={isScheduling}
       />
 
       {status ? (

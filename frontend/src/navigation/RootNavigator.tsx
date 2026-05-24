@@ -48,15 +48,18 @@ export type RootStackParamList = {
     targetPhoneNumber?: string;
   };
   ExecutionSummary: {
+    runId: string;
     actionId: QuickActionId;
     prompt: string;
     safetyCount: number;
     finalStepIndex: number;
+    executedAt: string;
     targetContactName?: string;
     targetPhoneNumber?: string;
     callStatus?: string;
   };
   ExecutionAudit: {
+    runId: string;
     actionId: QuickActionId;
     prompt: string;
     safetyCount: number;

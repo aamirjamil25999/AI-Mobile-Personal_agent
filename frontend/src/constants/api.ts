@@ -16,8 +16,24 @@ export const API_ENDPOINTS = {
     requestPhoneOtp: '/auth/phone/request-otp',
     verifyPhoneOtp: '/auth/phone/verify-otp',
     googleLogin: '/auth/google',
+    forgotPassword: '/auth/password/forgot',
+    resetPassword: '/auth/password/reset',
     refresh: '/auth/refresh',
     logout: '/auth/logout',
     me: '/auth/me'
+  },
+  workspace: {
+    profile: '/workspace/profile',
+    permissions: '/workspace/permissions',
+    agentSettings: '/workspace/agent-settings',
+    executions: '/workspace/executions',
+    executionHistory: '/workspace/executions/history',
+    executionById: (runId: string) => `/workspace/executions/${runId}`,
+    executionAudits: (runId: string) => `/workspace/executions/${runId}/audits`,
+    followUpTemplates: '/workspace/followups/templates',
+    followUpInbox: '/workspace/followups/inbox',
+    followUps: '/workspace/followups',
+    followUpStatus: (followUpId: string) => `/workspace/followups/${followUpId}/status`,
+    followUpSnooze: (followUpId: string) => `/workspace/followups/${followUpId}/snooze`
   }
 } as const;

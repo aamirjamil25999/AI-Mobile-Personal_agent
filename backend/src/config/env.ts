@@ -77,4 +77,8 @@ export class EnvService {
   get exposeDevOtp() {
     return !this.isProduction && process.env.EXPOSE_DEV_OTP !== 'false';
   }
+
+  get passwordResetExpiryMs() {
+    return Number(process.env.PASSWORD_RESET_EXPIRY_MS ?? 30 * 60 * 1000);
+  }
 }
