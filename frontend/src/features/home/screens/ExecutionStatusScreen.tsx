@@ -95,6 +95,7 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
     return `${done}/${total} steps in progress`;
   }, [activeStep]);
 
+  const isSummaryReady = activeStep === EXECUTION_STEPS.length - 1;
   const dialNumber = selectedNumber ?? route.params.targetPhoneNumber ?? null;
 
   const findContactMatches = async () => {
@@ -345,10 +346,23 @@ export const ExecutionStatusScreen = ({ navigation, route }: ExecutionStatusScre
           }}
         />
         <Button
-          label="Next Step"
+          label={isSummaryReady ? 'View Summary' : 'Next Step'}
           fullWidth={false}
           style={styles.halfButton}
           onPress={() => {
+            if (isSummaryReady) {
+              navigation.navigate('ExecutionSummary', {
+                actionId: action.id,
+                prompt: route.params.prompt,
+                safetyCount: route.params.safetyCount,
+                finalStepIndex: activeStep,
+                targetContactName: route.params.targetContactName,
+                targetPhoneNumber: dialNumber ?? undefined,
+                callStatus: callStatus ?? undefined
+              });
+              return;
+            }
+
             setActiveStep((prev) => Math.min(prev + 1, EXECUTION_STEPS.length - 1));
           }}
         />
