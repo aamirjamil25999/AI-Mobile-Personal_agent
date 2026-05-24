@@ -5,6 +5,7 @@ import { LoginScreen } from '@/features/auth/screens/LoginScreen';
 import type { QuickActionId } from '@/features/home/types/home';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ActionCenterScreen } from '@/features/home/screens/ActionCenterScreen';
+import { ExecutionAuditScreen } from '@/features/home/screens/ExecutionAuditScreen';
 import { ExecutionStatusScreen } from '@/features/home/screens/ExecutionStatusScreen';
 import { ExecutionSummaryScreen } from '@/features/home/screens/ExecutionSummaryScreen';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
@@ -38,6 +39,15 @@ export type RootStackParamList = {
     targetContactName?: string;
     targetPhoneNumber?: string;
     callStatus?: string;
+  };
+  ExecutionAudit: {
+    actionId: QuickActionId;
+    prompt: string;
+    safetyCount: number;
+    targetContactName?: string;
+    targetPhoneNumber?: string;
+    callStatus?: string;
+    executedAt: string;
   };
 };
 
@@ -81,6 +91,11 @@ export const RootNavigator = () => {
             name="ExecutionSummary"
             component={ExecutionSummaryScreen}
             options={{ title: 'Execution Summary' }}
+          />
+          <Stack.Screen
+            name="ExecutionAudit"
+            component={ExecutionAuditScreen}
+            options={{ title: 'Execution Audit Log' }}
           />
         </>
       ) : (

@@ -112,6 +112,22 @@ export const ExecutionSummaryScreen = ({
         </View>
       </View>
 
+      <Button
+        label="View Audit Log"
+        variant="ghost"
+        onPress={() => {
+          navigation.navigate('ExecutionAudit', {
+            actionId: action.id,
+            prompt: route.params.prompt,
+            safetyCount: route.params.safetyCount,
+            targetContactName: route.params.targetContactName,
+            targetPhoneNumber: route.params.targetPhoneNumber,
+            callStatus: route.params.callStatus,
+            executedAt: new Date().toISOString()
+          });
+        }}
+      />
+
       <View style={styles.buttonRow}>
         <Button
           label="Run Again"
