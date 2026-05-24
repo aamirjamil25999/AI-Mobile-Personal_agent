@@ -2,16 +2,16 @@ import { Body, Controller, Get, Param, Patch, Post, Put, Query, UseGuards } from
 
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
-import type { CreateExecutionDto } from '@/modules/workspace/dto/create-execution.dto';
-import type { CreateFollowUpDto } from '@/modules/workspace/dto/create-followup.dto';
-import type { FollowUpTemplateQueryDto } from '@/modules/workspace/dto/followup-template-query.dto';
-import type { ListExecutionsQueryDto } from '@/modules/workspace/dto/list-executions-query.dto';
-import type { ListFollowUpsQueryDto } from '@/modules/workspace/dto/list-followups-query.dto';
-import type { SnoozeFollowUpDto } from '@/modules/workspace/dto/snooze-followup.dto';
-import type { UpdateAgentSettingsDto } from '@/modules/workspace/dto/update-agent-settings.dto';
-import type { UpdateFollowUpStatusDto } from '@/modules/workspace/dto/update-followup-status.dto';
-import type { UpdatePermissionsDto } from '@/modules/workspace/dto/update-permissions.dto';
-import type { UpdateProfileDto } from '@/modules/workspace/dto/update-profile.dto';
+import { CreateExecutionDto } from '@/modules/workspace/dto/create-execution.dto';
+import { CreateFollowUpDto } from '@/modules/workspace/dto/create-followup.dto';
+import { FollowUpTemplateQueryDto } from '@/modules/workspace/dto/followup-template-query.dto';
+import { ListExecutionsQueryDto } from '@/modules/workspace/dto/list-executions-query.dto';
+import { ListFollowUpsQueryDto } from '@/modules/workspace/dto/list-followups-query.dto';
+import { SnoozeFollowUpDto } from '@/modules/workspace/dto/snooze-followup.dto';
+import { UpdateAgentSettingsDto } from '@/modules/workspace/dto/update-agent-settings.dto';
+import { UpdateFollowUpStatusDto } from '@/modules/workspace/dto/update-followup-status.dto';
+import { UpdatePermissionsDto } from '@/modules/workspace/dto/update-permissions.dto';
+import { UpdateProfileDto } from '@/modules/workspace/dto/update-profile.dto';
 import { WorkspaceService } from '@/modules/workspace/workspace.service';
 
 @Controller('workspace')
