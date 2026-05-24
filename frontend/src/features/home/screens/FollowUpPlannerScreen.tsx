@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -40,19 +40,32 @@ export const FollowUpPlannerScreen = ({ navigation, route }: FollowUpPlannerScre
   const theme = useAppTheme();
   const action = getQuickActionById(route.params.actionId);
 
-  const [slotId, setSlotId] = useState<string>(FOLLOW_UP_SLOTS[1].id);
-  const [channel, setChannel] = useState<Channel>('notification');
-  const [note, setNote] = useState(
+  const defaultNote =
     action.id === 'call'
       ? `Follow up with ${route.params.targetContactName ?? 'contact'} and confirm next steps.`
-      : `Follow up on ${action.title.toLowerCase()} result.`
-  );
+      : `Follow up on ${action.title.toLowerCase()} result.`;
+
+  const [slotId, setSlotId] = useState<string>(route.params.prefillSlotId ?? FOLLOW_UP_SLOTS[1].id);
+  const [channel, setChannel] = useState<Channel>(route.params.prefillChannel ?? 'notification');
+  const [note, setNote] = useState(route.params.prefillNote ?? defaultNote);
   const [status, setStatus] = useState<string | null>(null);
 
   const selectedSlot = useMemo(
     () => FOLLOW_UP_SLOTS.find((item) => item.id === slotId) ?? FOLLOW_UP_SLOTS[0],
     [slotId]
   );
+
+  useEffect(() => {
+    if (route.params.prefillSlotId) {
+      setSlotId(route.params.prefillSlotId);
+    }
+    if (route.params.prefillChannel) {
+      setChannel(route.params.prefillChannel);
+    }
+    if (route.params.prefillNote) {
+      setNote(route.params.prefillNote);
+    }
+  }, [route.params.prefillChannel, route.params.prefillNote, route.params.prefillSlotId]);
 
   return (
     <ScreenContainer contentStyle={styles.container}>
@@ -177,6 +190,20 @@ export const FollowUpPlannerScreen = ({ navigation, route }: FollowUpPlannerScre
           Note: {note.trim() || 'No note added.'}
         </AppText>
       </View>
+
+      <Button
+        label="Open Templates"
+        variant="ghost"
+        onPress={() => {
+          navigation.navigate('FollowUpTemplates', {
+            runId: route.params.runId,
+            actionId: route.params.actionId,
+            prompt: route.params.prompt,
+            targetContactName: route.params.targetContactName,
+            targetPhoneNumber: route.params.targetPhoneNumber
+          });
+        }}
+      />
 
       <Button
         label="Schedule Follow-up"

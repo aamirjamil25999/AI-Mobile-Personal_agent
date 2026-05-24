@@ -9,6 +9,7 @@ import { ExecutionAuditScreen } from '@/features/home/screens/ExecutionAuditScre
 import { ExecutionHistoryScreen } from '@/features/home/screens/ExecutionHistoryScreen';
 import { RunDetailInsightsScreen } from '@/features/home/screens/RunDetailInsightsScreen';
 import { FollowUpPlannerScreen } from '@/features/home/screens/FollowUpPlannerScreen';
+import { FollowUpTemplatesScreen } from '@/features/home/screens/FollowUpTemplatesScreen';
 import { ExecutionStatusScreen } from '@/features/home/screens/ExecutionStatusScreen';
 import { ExecutionSummaryScreen } from '@/features/home/screens/ExecutionSummaryScreen';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
@@ -65,6 +66,16 @@ export type RootStackParamList = {
     callStatus?: string;
   };
   FollowUpPlanner: {
+    runId: string;
+    actionId: QuickActionId;
+    prompt: string;
+    targetContactName?: string;
+    targetPhoneNumber?: string;
+    prefillSlotId?: string;
+    prefillChannel?: 'notification' | 'message' | 'email';
+    prefillNote?: string;
+  };
+  FollowUpTemplates: {
     runId: string;
     actionId: QuickActionId;
     prompt: string;
@@ -133,6 +144,11 @@ export const RootNavigator = () => {
             name="FollowUpPlanner"
             component={FollowUpPlannerScreen}
             options={{ title: 'Follow-up Planner' }}
+          />
+          <Stack.Screen
+            name="FollowUpTemplates"
+            component={FollowUpTemplatesScreen}
+            options={{ title: 'Follow-up Templates' }}
           />
         </>
       ) : (
