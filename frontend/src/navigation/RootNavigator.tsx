@@ -15,6 +15,7 @@ import { FollowUpTemplatesScreen } from '@/features/home/screens/FollowUpTemplat
 import { ExecutionStatusScreen } from '@/features/home/screens/ExecutionStatusScreen';
 import { ExecutionSummaryScreen } from '@/features/home/screens/ExecutionSummaryScreen';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
+import { ProfileAccountScreen } from '@/features/home/screens/ProfileAccountScreen';
 import { TaskReviewScreen } from '@/features/home/screens/TaskReviewScreen';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -23,6 +24,7 @@ export type RootStackParamList = {
   Signup: undefined;
   ForgotPassword: undefined;
   Home: undefined;
+  ProfileAccount: undefined;
   ActionCenter: {
     actionId: QuickActionId;
   };
@@ -108,6 +110,11 @@ export const RootNavigator = () => {
             name="Home"
             component={HomeScreen}
             options={{ title: 'My Phone Agent' }}
+          />
+          <Stack.Screen
+            name="ProfileAccount"
+            component={ProfileAccountScreen}
+            options={{ title: 'Profile & Account' }}
           />
           <Stack.Screen
             name="ActionCenter"

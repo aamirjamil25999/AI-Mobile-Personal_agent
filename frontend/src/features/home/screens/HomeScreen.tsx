@@ -100,6 +100,13 @@ export const HomeScreen = () => {
             navigation.navigate('ExecutionHistory');
           }}
         />
+        <Button
+          label="Open Profile & Account"
+          variant="ghost"
+          onPress={() => {
+            navigation.navigate('ProfileAccount');
+          }}
+        />
       </View>
 
       <Button label="Logout" variant="secondary" onPress={() => void logout()} />
