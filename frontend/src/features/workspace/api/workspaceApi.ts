@@ -4,6 +4,8 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/constants/api';
 import type {
   AgentSettings,
   CreateExecutionInput,
+  ExecuteAgentInput,
+  ExecuteAgentResponse,
   CreateFollowUpInput,
   ExecutionAuditItem,
   ExecutionHistoryItem,
@@ -113,6 +115,14 @@ export const workspaceApi = createApi({
       }),
       invalidatesTags: ['ExecutionHistory']
     }),
+    executeAgent: builder.mutation<ExecuteAgentResponse, ExecuteAgentInput>({
+      query: (body) => ({
+        url: API_ENDPOINTS.workspace.agentExecute,
+        method: 'POST',
+        body
+      }),
+      invalidatesTags: ['ExecutionHistory']
+    }),
     getExecutionAudits: builder.query<ExecutionAuditItem[], string>({
       query: (runId) => ({
         url: API_ENDPOINTS.workspace.executionAudits(runId),
@@ -181,6 +191,7 @@ export const {
   useGetExecutionHistoryQuery,
   useGetExecutionQuery,
   useCreateExecutionMutation,
+  useExecuteAgentMutation,
   useGetExecutionAuditsQuery,
   useGetFollowUpTemplatesQuery,
   useGetFollowUpInboxQuery,

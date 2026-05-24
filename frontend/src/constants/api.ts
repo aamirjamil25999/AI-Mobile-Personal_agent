@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
     profile: '/workspace/profile',
     permissions: '/workspace/permissions',
     agentSettings: '/workspace/agent-settings',
+    agentExecute: '/workspace/agent/execute',
     executions: '/workspace/executions',
     executionHistory: '/workspace/executions/history',
     executionById: (runId: string) => `/workspace/executions/${runId}`,

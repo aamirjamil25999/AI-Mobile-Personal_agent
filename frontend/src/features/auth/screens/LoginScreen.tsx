@@ -14,9 +14,7 @@ import { AppText } from '@/components/ui/Text';
 import {
   useLoginWithEmailMutation,
   useLoginWithGoogleMutation,
-  useRequestPhoneOtpMutation,
-  useSignupWithEmailMutation,
-  useVerifyPhoneOtpMutation
+  useSignupWithEmailMutation
 } from '@/features/auth/api/authApi';
 import { setCredentials } from '@/features/auth/slices/authSlice';
 import type { EmailLoginInput, EmailSignupInput } from '@/features/auth/types/auth';
@@ -24,11 +22,11 @@ import { toggleThemeMode } from '@/features/theme/slices/themeSlice';
 import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { useAppDispatch } from '@/store/hooks';
 import { useAppTheme } from '@/theme/useAppTheme';
-import { emailLoginSchema, emailSignupSchema, otpSchema, phoneSchema } from '@/utils/validators';
+import { emailLoginSchema, emailSignupSchema } from '@/utils/validators';
 
 WebBrowser.maybeCompleteAuthSession();
 
-type LoginMode = 'email' | 'phone' | 'google';
+type LoginMode = 'email' | 'google';
 type EmailMode = 'signin' | 'signup';
 
 type EmailSignupFormValues = EmailSignupInput & {
@@ -45,24 +43,16 @@ const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
 const hasGoogleConfig = Boolean(googleIosClientId || googleAndroidClientId || googleWebClientId);
 
-const normalizePhoneNumber = (value: string) => value.replace(/[^\d]/g, '').slice(0, 15);
-const normalizeOtp = (value: string) => value.replace(/[^\d]/g, '').slice(0, 6);
-
 export const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const theme = useAppTheme();
   const dispatch = useAppDispatch();
 
   const [mode, setMode] = useState<LoginMode>('email');
   const [emailMode, setEmailMode] = useState<EmailMode>('signin');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const [signupWithEmail, { isLoading: isSignupLoading }] = useSignupWithEmailMutation();
   const [loginWithEmail, { isLoading: isEmailLoading }] = useLoginWithEmailMutation();
-  const [requestPhoneOtp, { isLoading: isPhoneRequestLoading }] = useRequestPhoneOtpMutation();
-  const [verifyPhoneOtp, { isLoading: isPhoneVerifyLoading }] = useVerifyPhoneOtpMutation();
   const [loginWithGoogle, { isLoading: isGoogleLoading }] = useLoginWithGoogleMutation();
 
   const {
@@ -126,11 +116,6 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
 
   useEffect(() => {
     setStatusMessage(null);
-    if (mode !== 'phone') {
-      setOtp('');
-      setOtpSent(false);
-      setPhoneNumber('');
-    }
   }, [mode]);
 
   const handleEmailLogin = handleLoginSubmit(async (values) => {
@@ -161,52 +146,6 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
     }
   });
 
-  const handleSendOtp = async () => {
-    const normalizedPhone = normalizePhoneNumber(phoneNumber);
-    const parsed = phoneSchema.safeParse({ phoneNumber: normalizedPhone });
-    if (!parsed.success) {
-      setStatusMessage(parsed.error.issues[0]?.message ?? 'Enter a valid phone number.');
-      return;
-    }
-
-    try {
-      const otpResponse = await requestPhoneOtp({
-        phoneNumber: normalizedPhone
-      }).unwrap();
-      setOtpSent(true);
-      setPhoneNumber(normalizedPhone);
-      setOtp(otpResponse.otp ?? '');
-      setStatusMessage(
-        otpResponse.otp
-          ? `OTP sent. Dev OTP: ${otpResponse.otp}`
-          : 'OTP sent. Check your SMS provider delivery status.'
-      );
-    } catch {
-      setStatusMessage('Failed to send OTP.');
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    const normalizedPhone = normalizePhoneNumber(phoneNumber);
-    const normalizedOtp = normalizeOtp(otp);
-    const parsed = otpSchema.safeParse({ otp: normalizedOtp });
-    if (!parsed.success) {
-      setStatusMessage(parsed.error.issues[0]?.message ?? 'OTP must be 6 digits.');
-      return;
-    }
-
-    try {
-      const auth = await verifyPhoneOtp({
-        phoneNumber: normalizedPhone,
-        otp: normalizedOtp
-      }).unwrap();
-      dispatch(setCredentials(auth));
-      setStatusMessage('Phone login successful');
-    } catch {
-      setStatusMessage('OTP verification failed.');
-    }
-  };
-
   const handleGooglePress = async () => {
     if (!hasGoogleConfig) {
       setStatusMessage('Google login is not configured yet. Add client IDs in frontend .env.');
@@ -224,9 +163,6 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const modeLabel = useMemo(() => {
     if (mode === 'email') {
       return emailMode === 'signin' ? 'Email Sign In' : 'Email Sign Up';
-    }
-    if (mode === 'phone') {
-      return 'Phone + OTP';
     }
     return 'Google OAuth';
   }, [mode, emailMode]);
@@ -253,13 +189,6 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
             style={styles.modeButton}
           />
           <Button
-            label="Phone"
-            variant={mode === 'phone' ? 'primary' : 'secondary'}
-            fullWidth={false}
-            onPress={() => setMode('phone')}
-            style={styles.modeButton}
-          />
-          <Button
             label="Google"
             variant={mode === 'google' ? 'primary' : 'secondary'}
             fullWidth={false}
@@ -267,6 +196,9 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
             style={styles.modeButton}
           />
         </View>
+        <AppText muted style={styles.otpPauseHint}>
+          Phone OTP login is paused for now. Use Email or Google sign-in.
+        </AppText>
 
         {mode === 'email' ? (
           <>
@@ -395,45 +327,6 @@ export const LoginScreen = ({ navigation }: LoginScreenProps) => {
           </>
         ) : null}
 
-        {mode === 'phone' ? (
-          <View>
-            <Input
-              label="Phone Number"
-              placeholder="9876543210"
-              keyboardType="phone-pad"
-              value={phoneNumber}
-              onChangeText={(value) => setPhoneNumber(normalizePhoneNumber(value))}
-            />
-            {otpSent ? (
-              <Input
-                label="OTP"
-                placeholder="6 digit OTP"
-                keyboardType="number-pad"
-                value={otp}
-                onChangeText={(value) => setOtp(normalizeOtp(value))}
-              />
-            ) : null}
-            {!otpSent ? (
-              <Button label="Send OTP" onPress={handleSendOtp} isLoading={isPhoneRequestLoading} />
-            ) : (
-              <>
-                <Button
-                  label="Verify OTP"
-                  onPress={handleVerifyOtp}
-                  isLoading={isPhoneVerifyLoading}
-                />
-                <Button
-                  label="Resend OTP"
-                  variant="ghost"
-                  onPress={handleSendOtp}
-                  isLoading={isPhoneRequestLoading}
-                  style={styles.resendButton}
-                />
-              </>
-            )}
-          </View>
-        ) : null}
-
         {mode === 'google' ? (
           <View>
             <Button
@@ -490,8 +383,9 @@ const styles = StyleSheet.create({
   modeButton: {
     flex: 1
   },
-  resendButton: {
-    marginTop: 10
+  otpPauseHint: {
+    fontSize: 12,
+    marginTop: -2
   },
   themeButton: {
     marginTop: 8

@@ -89,6 +89,30 @@ export type CreateExecutionInput = {
   audits?: CreateExecutionAuditInput[];
 };
 
+export type ExecuteAgentInput = {
+  actionId: 'call' | 'message' | 'email' | 'settings';
+  prompt: string;
+  safetyCount: number;
+  targetContactName?: string;
+  targetPhoneNumber?: string;
+  callStatus?: string;
+};
+
+export type AgentExecutionResult = {
+  summary: string;
+  planSteps: string[];
+  riskLevel: 'low' | 'medium' | 'high';
+  followUpSuggestion: string;
+  callRecommendation?: string;
+  provider: 'ollama' | 'fallback' | string;
+  model: string;
+};
+
+export type ExecuteAgentResponse = {
+  run: ExecutionRun;
+  agent: AgentExecutionResult;
+};
+
 export type FollowUpTemplate = {
   id: string;
   title: string;

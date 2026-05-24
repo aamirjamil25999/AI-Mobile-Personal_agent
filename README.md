@@ -72,6 +72,15 @@ npm run db:down
 Backend base URL:
 - `http://localhost:3000/api`
 
+Ollama (local free LLM) setup:
+- Make sure Ollama is running locally.
+- Recommended model for this project:
+  - `ollama pull gemma3:4b`
+- Backend reads:
+  - `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`)
+  - `OLLAMA_MODEL` (default `gemma3:4b`)
+  - `OLLAMA_TIMEOUT_MS` (default `15000`)
+
 Health endpoint:
 - `GET /api/health`
 
@@ -143,6 +152,7 @@ All endpoints are under `/api/workspace` (JWT required):
   - `OTP_DEFAULT_COUNTRY_CODE=+91` (or your country code)
   - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
 - Default mode is `OTP_PROVIDER=DEV_LOG`.
+- Note: Phone OTP login is currently paused in frontend login UI.
 
 ### Google login
 - Set Google client IDs in `frontend/.env` and backend `GOOGLE_CLIENT_IDS`.
@@ -171,4 +181,5 @@ npm run lint
 
 - Authentication flows ready (email, phone OTP, google, forgot/reset password).
 - Workspace backend + related app screens connected (profile, permissions, execution, follow-ups).
-- OTP is still development-mode (real SMS provider integration pending).
+- Local Ollama-based agent execution endpoint added: `POST /api/workspace/agent/execute`.
+- OTP is still development-mode (real SMS provider integration pending), and phone OTP login UI is paused.

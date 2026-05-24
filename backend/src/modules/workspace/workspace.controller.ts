@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Put, Query, UseGuards } from
 
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { CreateAgentExecutionDto } from '@/modules/workspace/dto/create-agent-execution.dto';
 import { CreateExecutionDto } from '@/modules/workspace/dto/create-execution.dto';
 import { CreateFollowUpDto } from '@/modules/workspace/dto/create-followup.dto';
 import { FollowUpTemplateQueryDto } from '@/modules/workspace/dto/followup-template-query.dto';
@@ -72,6 +73,14 @@ export class WorkspaceController {
     @Body() body: CreateExecutionDto
   ) {
     return this.workspaceService.createExecution(user.id, body);
+  }
+
+  @Post('agent/execute')
+  executeAgentTask(
+    @CurrentUser() user: { id: string },
+    @Body() body: CreateAgentExecutionDto
+  ) {
+    return this.workspaceService.executeAgentTask(user.id, body);
   }
 
   @Get('executions/:runId')

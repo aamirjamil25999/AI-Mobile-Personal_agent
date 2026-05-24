@@ -105,6 +105,23 @@ export class EnvService {
     return raw.startsWith('+') ? raw : `+${raw}`;
   }
 
+  get ollamaBaseUrl() {
+    const raw = process.env.OLLAMA_BASE_URL?.trim();
+    return (raw || 'http://127.0.0.1:11434').replace(/\/+$/, '');
+  }
+
+  get ollamaModel() {
+    return process.env.OLLAMA_MODEL?.trim() || 'gemma3:4b';
+  }
+
+  get ollamaTimeoutMs() {
+    const value = Number(process.env.OLLAMA_TIMEOUT_MS ?? 15000);
+    if (!Number.isFinite(value) || value < 1000) {
+      return 15000;
+    }
+    return Math.floor(value);
+  }
+
   get passwordResetExpiryMs() {
     return Number(process.env.PASSWORD_RESET_EXPIRY_MS ?? 30 * 60 * 1000);
   }

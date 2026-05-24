@@ -1,7 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, type User } from '@prisma/client';
 
+import { EnvService } from '@/config/env';
 import { PrismaService } from '@/database/prisma.service';
+import type { CreateAgentExecutionDto } from '@/modules/workspace/dto/create-agent-execution.dto';
 import type { CreateExecutionDto } from '@/modules/workspace/dto/create-execution.dto';
 import type { CreateFollowUpDto } from '@/modules/workspace/dto/create-followup.dto';
 import type { FollowUpTemplateQueryDto } from '@/modules/workspace/dto/followup-template-query.dto';
@@ -75,6 +77,45 @@ const DEFAULT_FOLLOWUP_TEMPLATES: Record<
   ]
 };
 
+const DEFAULT_PLAN_STEPS: Record<string, string[]> = {
+  call: [
+    'Validate contact details and confirm call objective.',
+    'Start call flow with minimum required permissions.',
+    'Capture summary and prepare follow-up reminder.'
+  ],
+  message: [
+    'Draft concise message with clear action request.',
+    'Check tone and deadline before send.',
+    'Track delivery and create follow-up if no response.'
+  ],
+  email: [
+    'Create structured email draft with subject and CTA.',
+    'Run quick security check for sensitive text.',
+    'Send after review and queue follow-up reminder.'
+  ],
+  settings: [
+    'Validate requested device setting changes.',
+    'Apply only non-destructive configuration updates.',
+    'Verify applied values and log summary.'
+  ]
+};
+
+type AgentRiskLevel = 'low' | 'medium' | 'high';
+
+type AgentPlan = {
+  summary: string;
+  planSteps: string[];
+  riskLevel: AgentRiskLevel;
+  followUpSuggestion: string;
+  callRecommendation?: string;
+  provider: 'ollama' | 'fallback';
+  model: string;
+};
+
+type OllamaGenerateResponse = {
+  response?: string;
+};
+
 const asRecord = (value: Prisma.JsonValue | null | undefined): Record<string, unknown> => {
   if (!value || Array.isArray(value) || typeof value !== 'object') {
     return {};
@@ -85,7 +126,12 @@ const asRecord = (value: Prisma.JsonValue | null | undefined): Record<string, un
 
 @Injectable()
 export class WorkspaceService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(WorkspaceService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly env: EnvService
+  ) {}
 
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -264,6 +310,73 @@ export class WorkspaceService {
     return run;
   }
 
+  async executeAgentTask(userId: string, dto: CreateAgentExecutionDto) {
+    const agentPlan = await this.generateAgentPlan(dto);
+    const status = agentPlan.riskLevel === 'high' ? 'attention' : 'success';
+    const callStatus = this.resolveCallStatus(dto, agentPlan);
+    const executedAt = new Date().toISOString();
+
+    const audits: NonNullable<CreateExecutionDto['audits']> = [
+      {
+        title: 'Agent planning complete',
+        detail: this.toAuditDetail(agentPlan.summary),
+        status: 'ok'
+      },
+      {
+        title: 'Execution steps',
+        detail: this.toAuditDetail(
+          agentPlan.planSteps.map((step, index) => `${index + 1}. ${step}`).join(' ')
+        ),
+        status: 'ok'
+      },
+      {
+        title: 'Risk assessment',
+        detail: this.toAuditDetail(
+          `Risk level: ${agentPlan.riskLevel}. ${agentPlan.followUpSuggestion}`
+        ),
+        status: status === 'success' ? 'ok' : 'info'
+      },
+      {
+        title: 'Model provider',
+        detail: this.toAuditDetail(`${agentPlan.provider}:${agentPlan.model}`),
+        status: 'info'
+      }
+    ];
+
+    if (dto.actionId === 'call' && callStatus) {
+      audits.push({
+        title: 'Smart call recommendation',
+        detail: this.toAuditDetail(callStatus),
+        status: 'info'
+      });
+    }
+
+    const run = await this.createExecution(userId, {
+      actionId: dto.actionId,
+      prompt: dto.prompt,
+      safetyCount: dto.safetyCount ?? 0,
+      status,
+      targetContactName: dto.targetContactName,
+      targetPhoneNumber: dto.targetPhoneNumber,
+      callStatus,
+      executedAt,
+      audits
+    });
+
+    return {
+      run,
+      agent: {
+        summary: agentPlan.summary,
+        planSteps: agentPlan.planSteps,
+        riskLevel: agentPlan.riskLevel,
+        followUpSuggestion: agentPlan.followUpSuggestion,
+        callRecommendation: agentPlan.callRecommendation,
+        provider: agentPlan.provider,
+        model: agentPlan.model
+      }
+    };
+  }
+
   async listFollowUpTemplates(query: FollowUpTemplateQueryDto) {
     if (query.actionId) {
       return DEFAULT_FOLLOWUP_TEMPLATES[query.actionId] ?? [];
@@ -342,6 +455,187 @@ export class WorkspaceService {
         status: 'pending'
       }
     });
+  }
+
+  private async generateAgentPlan(dto: CreateAgentExecutionDto): Promise<AgentPlan> {
+    const promptLines = [
+      'You are an Android phone automation planner.',
+      'Return valid JSON only (no markdown, no code fences).',
+      'Use schema: {"summary":"string","planSteps":["step1","step2"],"riskLevel":"low|medium|high","followUpSuggestion":"string","callRecommendation":"string optional"}',
+      `actionId: ${dto.actionId}`,
+      `userPrompt: ${dto.prompt}`,
+      `safetyChecksEnabled: ${dto.safetyCount ?? 0}`,
+      `targetContactName: ${dto.targetContactName ?? ''}`,
+      `targetPhoneNumber: ${dto.targetPhoneNumber ?? ''}`,
+      `existingCallStatus: ${dto.callStatus ?? ''}`
+    ];
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.env.ollamaTimeoutMs);
+
+    try {
+      const response = await fetch(`${this.env.ollamaBaseUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.env.ollamaModel,
+          prompt: promptLines.join('\n'),
+          stream: false,
+          format: 'json',
+          options: {
+            temperature: 0.2
+          }
+        }),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ollama request failed with status ${response.status}`);
+      }
+
+      const payload = (await response.json()) as OllamaGenerateResponse;
+      const parsed = this.parseOllamaJson(payload.response);
+
+      const summary = this.sanitizeText(
+        typeof parsed?.summary === 'string' ? parsed.summary : '',
+        240
+      );
+      const followUpSuggestion = this.sanitizeText(
+        typeof parsed?.followUpSuggestion === 'string' ? parsed.followUpSuggestion : '',
+        240
+      );
+      const callRecommendation = this.sanitizeText(
+        typeof parsed?.callRecommendation === 'string' ? parsed.callRecommendation : '',
+        240
+      );
+
+      const rawSteps = Array.isArray(parsed?.planSteps)
+        ? parsed.planSteps
+        : typeof parsed?.planSteps === 'string'
+          ? parsed.planSteps.split(/\n+/g)
+          : [];
+
+      const planSteps = rawSteps
+        .map((value) => this.sanitizeText(String(value), 100))
+        .filter(Boolean)
+        .slice(0, 5);
+
+      const riskRaw = typeof parsed?.riskLevel === 'string' ? parsed.riskLevel.toLowerCase() : '';
+      const riskLevel: AgentRiskLevel =
+        riskRaw === 'low' || riskRaw === 'medium' || riskRaw === 'high' ? riskRaw : 'medium';
+
+      return {
+        summary: summary || this.defaultSummary(dto.actionId),
+        planSteps: planSteps.length > 0 ? planSteps : DEFAULT_PLAN_STEPS[dto.actionId],
+        riskLevel,
+        followUpSuggestion:
+          followUpSuggestion || 'Review outcome and schedule follow-up if response is delayed.',
+        callRecommendation: dto.actionId === 'call' ? callRecommendation || undefined : undefined,
+        provider: 'ollama',
+        model: this.env.ollamaModel
+      };
+    } catch (error) {
+      this.logger.warn(`Falling back to deterministic planner. Reason: ${(error as Error).message}`);
+      return this.buildFallbackPlan(dto);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  private buildFallbackPlan(dto: CreateAgentExecutionDto): AgentPlan {
+    const summary = this.defaultSummary(dto.actionId);
+
+    return {
+      summary,
+      planSteps: DEFAULT_PLAN_STEPS[dto.actionId],
+      riskLevel: dto.actionId === 'settings' ? 'medium' : 'low',
+      followUpSuggestion: 'Confirm final result and create reminder for unresolved responses.',
+      callRecommendation:
+        dto.actionId === 'call'
+          ? `Prepare call using ${dto.targetContactName || dto.targetPhoneNumber || 'selected contact'}.`
+          : undefined,
+      provider: 'fallback',
+      model: 'deterministic-plan'
+    };
+  }
+
+  private parseOllamaJson(value?: string): Record<string, unknown> | null {
+    if (!value) {
+      return null;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      const start = trimmed.indexOf('{');
+      const end = trimmed.lastIndexOf('}');
+      if (start >= 0 && end > start) {
+        const candidate = trimmed.slice(start, end + 1);
+        try {
+          const parsed = JSON.parse(candidate);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return parsed as Record<string, unknown>;
+          }
+        } catch {
+          return null;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private resolveCallStatus(dto: CreateAgentExecutionDto, plan: AgentPlan) {
+    if (dto.actionId !== 'call') {
+      return dto.callStatus;
+    }
+
+    if (dto.callStatus?.trim()) {
+      return this.sanitizeText(dto.callStatus, 260);
+    }
+
+    if (plan.callRecommendation) {
+      return this.sanitizeText(`LLM: ${plan.callRecommendation}`, 260);
+    }
+
+    if (dto.targetPhoneNumber) {
+      return this.sanitizeText(`Ready to dial ${dto.targetPhoneNumber}`, 260);
+    }
+
+    if (dto.targetContactName) {
+      return this.sanitizeText(`Ready to search phonebook for ${dto.targetContactName}`, 260);
+    }
+
+    return 'Smart call plan prepared.';
+  }
+
+  private defaultSummary(actionId: string) {
+    if (actionId === 'call') {
+      return 'Prepared a safe call execution plan with contact lookup and summary logging.';
+    }
+    if (actionId === 'message') {
+      return 'Prepared a concise message workflow with delivery and follow-up checks.';
+    }
+    if (actionId === 'email') {
+      return 'Prepared an email draft workflow with quality and security checks.';
+    }
+    return 'Prepared safe settings-update workflow with verification steps.';
+  }
+
+  private sanitizeText(value: string, maxLength: number) {
+    return value.replace(/\s+/g, ' ').trim().slice(0, maxLength);
+  }
+
+  private toAuditDetail(value: string) {
+    return this.sanitizeText(value, 260);
   }
 
   private async getOrCreatePreferences(userId: string) {
