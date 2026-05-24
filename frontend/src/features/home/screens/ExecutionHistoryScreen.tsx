@@ -163,14 +163,16 @@ export const ExecutionHistoryScreen = ({ navigation }: ExecutionHistoryScreenPro
             <Pressable
               key={record.id}
               onPress={() => {
-                navigation.navigate('ExecutionAudit', {
+                navigation.navigate('RunDetailInsights', {
+                  runId: record.id,
                   actionId: record.actionId,
                   prompt: record.prompt,
+                  executedAt: record.executedAt,
                   safetyCount: record.safetyCount,
+                  status: record.status,
                   targetContactName: record.targetContactName,
                   targetPhoneNumber: record.targetPhoneNumber,
-                  callStatus: record.callStatus,
-                  executedAt: record.executedAt
+                  callStatus: record.callStatus
                 });
               }}
               style={[

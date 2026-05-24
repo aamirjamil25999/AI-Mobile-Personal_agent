@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ActionCenterScreen } from '@/features/home/screens/ActionCenterScreen';
 import { ExecutionAuditScreen } from '@/features/home/screens/ExecutionAuditScreen';
 import { ExecutionHistoryScreen } from '@/features/home/screens/ExecutionHistoryScreen';
+import { RunDetailInsightsScreen } from '@/features/home/screens/RunDetailInsightsScreen';
 import { ExecutionStatusScreen } from '@/features/home/screens/ExecutionStatusScreen';
 import { ExecutionSummaryScreen } from '@/features/home/screens/ExecutionSummaryScreen';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
@@ -51,6 +52,17 @@ export type RootStackParamList = {
     executedAt: string;
   };
   ExecutionHistory: undefined;
+  RunDetailInsights: {
+    runId: string;
+    actionId: QuickActionId;
+    prompt: string;
+    executedAt: string;
+    safetyCount: number;
+    status: 'success' | 'attention';
+    targetContactName?: string;
+    targetPhoneNumber?: string;
+    callStatus?: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -103,6 +115,11 @@ export const RootNavigator = () => {
             name="ExecutionHistory"
             component={ExecutionHistoryScreen}
             options={{ title: 'Execution History' }}
+          />
+          <Stack.Screen
+            name="RunDetailInsights"
+            component={RunDetailInsightsScreen}
+            options={{ title: 'Run Detail Insights' }}
           />
         </>
       ) : (

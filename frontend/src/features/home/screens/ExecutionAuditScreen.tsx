@@ -151,7 +151,7 @@ export const ExecutionAuditScreen = ({ navigation, route }: ExecutionAuditScreen
       </View>
 
       <Button
-        label="Back To Summary"
+        label="Back"
         variant="secondary"
         onPress={() => {
           navigation.goBack();
