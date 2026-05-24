@@ -15,6 +15,7 @@ import { FollowUpTemplatesScreen } from '@/features/home/screens/FollowUpTemplat
 import { ExecutionStatusScreen } from '@/features/home/screens/ExecutionStatusScreen';
 import { ExecutionSummaryScreen } from '@/features/home/screens/ExecutionSummaryScreen';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
+import { PermissionsManagerScreen } from '@/features/home/screens/PermissionsManagerScreen';
 import { ProfileAccountScreen } from '@/features/home/screens/ProfileAccountScreen';
 import { TaskReviewScreen } from '@/features/home/screens/TaskReviewScreen';
 import { useAppTheme } from '@/theme/useAppTheme';
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   Home: undefined;
   ProfileAccount: undefined;
+  PermissionsManager: undefined;
   ActionCenter: {
     actionId: QuickActionId;
   };
@@ -115,6 +117,11 @@ export const RootNavigator = () => {
             name="ProfileAccount"
             component={ProfileAccountScreen}
             options={{ title: 'Profile & Account' }}
+          />
+          <Stack.Screen
+            name="PermissionsManager"
+            component={PermissionsManagerScreen}
+            options={{ title: 'Permissions Manager' }}
           />
           <Stack.Screen
             name="ActionCenter"

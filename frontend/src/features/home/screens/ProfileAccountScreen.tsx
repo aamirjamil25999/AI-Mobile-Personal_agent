@@ -133,6 +133,13 @@ export const ProfileAccountScreen = ({ navigation }: ProfileAccountScreenProps) 
             setStatus(`Theme changed to ${themeMode === 'dark' ? 'light' : 'dark'}.`);
           }}
         />
+        <Button
+          label="Open Permissions Manager"
+          variant="ghost"
+          onPress={() => {
+            navigation.navigate('PermissionsManager');
+          }}
+        />
       </View>
 
       <View style={styles.buttonRow}>
