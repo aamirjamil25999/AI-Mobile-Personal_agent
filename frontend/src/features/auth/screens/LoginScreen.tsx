@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as Google from 'expo-auth-session/providers/google';
@@ -19,6 +20,7 @@ import {
 } from '@/features/auth/api/authApi';
 import { setCredentials } from '@/features/auth/slices/authSlice';
 import type { EmailLoginInput, EmailSignupInput } from '@/features/auth/types/auth';
+import type { RootStackParamList } from '@/navigation/RootNavigator';
 import { toggleThemeMode } from '@/features/theme/slices/themeSlice';
 import { useAppDispatch } from '@/store/hooks';
 import { useAppTheme } from '@/theme/useAppTheme';
@@ -37,6 +39,7 @@ type EmailMode = 'signin' | 'signup';
 type EmailSignupFormValues = EmailSignupInput & {
   confirmPassword: string;
 };
+type LoginScreenProps = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 const GOOGLE_CLIENT_PLACEHOLDER =
   '000000000000-placeholderplaceholderplaceholder.apps.googleusercontent.com';
@@ -52,7 +55,7 @@ const hasGoogleConfig = Boolean(
 const normalizePhoneNumber = (value: string) => value.replace(/[^\d]/g, '').slice(0, 15);
 const normalizeOtp = (value: string) => value.replace(/[^\d]/g, '').slice(0, 6);
 
-export const LoginScreen = () => {
+export const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const theme = useAppTheme();
   const dispatch = useAppDispatch();
 
@@ -323,6 +326,11 @@ export const LoginScreen = () => {
                   )}
                 />
                 <Button label="Login" onPress={handleEmailLogin} isLoading={isEmailLoading} />
+                <Button
+                  label="Open Full Signup Screen"
+                  variant="ghost"
+                  onPress={() => navigation.navigate('Signup')}
+                />
               </View>
             ) : (
               <View>
