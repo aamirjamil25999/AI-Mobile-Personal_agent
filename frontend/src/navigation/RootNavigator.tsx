@@ -8,6 +8,7 @@ import { ActionCenterScreen } from '@/features/home/screens/ActionCenterScreen';
 import { ExecutionAuditScreen } from '@/features/home/screens/ExecutionAuditScreen';
 import { ExecutionHistoryScreen } from '@/features/home/screens/ExecutionHistoryScreen';
 import { RunDetailInsightsScreen } from '@/features/home/screens/RunDetailInsightsScreen';
+import { FollowUpPlannerScreen } from '@/features/home/screens/FollowUpPlannerScreen';
 import { ExecutionStatusScreen } from '@/features/home/screens/ExecutionStatusScreen';
 import { ExecutionSummaryScreen } from '@/features/home/screens/ExecutionSummaryScreen';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
@@ -62,6 +63,13 @@ export type RootStackParamList = {
     targetContactName?: string;
     targetPhoneNumber?: string;
     callStatus?: string;
+  };
+  FollowUpPlanner: {
+    runId: string;
+    actionId: QuickActionId;
+    prompt: string;
+    targetContactName?: string;
+    targetPhoneNumber?: string;
   };
 };
 
@@ -120,6 +128,11 @@ export const RootNavigator = () => {
             name="RunDetailInsights"
             component={RunDetailInsightsScreen}
             options={{ title: 'Run Detail Insights' }}
+          />
+          <Stack.Screen
+            name="FollowUpPlanner"
+            component={FollowUpPlannerScreen}
+            options={{ title: 'Follow-up Planner' }}
           />
         </>
       ) : (

@@ -154,6 +154,19 @@ export const RunDetailInsightsScreen = ({
           });
         }}
       />
+      <Button
+        label="Plan Follow-up"
+        variant="ghost"
+        onPress={() => {
+          navigation.navigate('FollowUpPlanner', {
+            runId: route.params.runId,
+            actionId: route.params.actionId,
+            prompt: route.params.prompt,
+            targetContactName: route.params.targetContactName,
+            targetPhoneNumber: route.params.targetPhoneNumber
+          });
+        }}
+      />
 
       <View style={styles.buttonRow}>
         <Button
