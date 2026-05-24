@@ -140,6 +140,13 @@ export const ProfileAccountScreen = ({ navigation }: ProfileAccountScreenProps) 
             navigation.navigate('PermissionsManager');
           }}
         />
+        <Button
+          label="Open Agent Settings"
+          variant="ghost"
+          onPress={() => {
+            navigation.navigate('AgentSettings');
+          }}
+        />
       </View>
 
       <View style={styles.buttonRow}>

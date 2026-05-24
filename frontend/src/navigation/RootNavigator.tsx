@@ -7,6 +7,7 @@ import { ForgotPasswordScreen } from '@/features/auth/screens/ForgotPasswordScre
 import type { QuickActionId } from '@/features/home/types/home';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ActionCenterScreen } from '@/features/home/screens/ActionCenterScreen';
+import { AgentSettingsScreen } from '@/features/home/screens/AgentSettingsScreen';
 import { ExecutionAuditScreen } from '@/features/home/screens/ExecutionAuditScreen';
 import { ExecutionHistoryScreen } from '@/features/home/screens/ExecutionHistoryScreen';
 import { RunDetailInsightsScreen } from '@/features/home/screens/RunDetailInsightsScreen';
@@ -27,6 +28,7 @@ export type RootStackParamList = {
   Home: undefined;
   ProfileAccount: undefined;
   PermissionsManager: undefined;
+  AgentSettings: undefined;
   ActionCenter: {
     actionId: QuickActionId;
   };
@@ -122,6 +124,11 @@ export const RootNavigator = () => {
             name="PermissionsManager"
             component={PermissionsManagerScreen}
             options={{ title: 'Permissions Manager' }}
+          />
+          <Stack.Screen
+            name="AgentSettings"
+            component={AgentSettingsScreen}
+            options={{ title: 'Agent Settings & Plugins' }}
           />
           <Stack.Screen
             name="ActionCenter"
