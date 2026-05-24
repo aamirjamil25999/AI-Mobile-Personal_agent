@@ -93,7 +93,8 @@ npm run start
 Local API URL notes:
 - iOS simulator: `http://localhost:3000/api`
 - Android emulator default fallback: `http://10.0.2.2:3000/api`
-- Physical Android device: `http://<YOUR_LOCAL_IP>:3000/api`
+- Physical Android device: app automatically tries LAN host (`expoConfig.hostUri`) in Expo Go.
+- If auto-detect fails, set `EXPO_PUBLIC_API_BASE_URL=http://<YOUR_LOCAL_IP>:3000/api`.
 
 ## 4) Auth API Endpoints
 
